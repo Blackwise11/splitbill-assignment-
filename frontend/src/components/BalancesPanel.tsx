@@ -1,7 +1,9 @@
 "use client";
 
-import { amountToSatang, formatMoneyAmount, formatSatang } from "@/lib/money";
+import { amountToSatang, formatSatang } from "@/lib/money";
+import { formatThaiBaht } from "@/lib/format";
 import type { Balances } from "@/lib/types";
+import { SectionHeading } from "@/components/SectionHeading";
 import { Avatar, titleCase } from "@/components/UserSwitcher";
 
 interface BalancesPanelProps {
@@ -12,80 +14,97 @@ interface BalancesPanelProps {
 
 export function BalancesPanel({ balances, activeUser, loading }: BalancesPanelProps) {
   return (
-    <section className="rounded-[14px] border border-line bg-card p-4">
-      <div className="mb-1 flex items-baseline justify-between gap-2">
-        <h2 className="text-[14px] font-medium text-ink">Balances</h2>
-        {balances ? (
-          <span className="font-mono text-[12px] text-ink-muted">{balances.currency}</span>
-        ) : null}
+    <section className="overflow-hidden rounded-xl border border-line bg-card shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+      <div className="border-b border-line px-4 pt-4 pb-3">
+        <SectionHeading
+          title="Balances"
+          className="mb-0"
+          meta={<span className="font-mono text-[11px] text-ink-muted">THB</span>}
+        />
       </div>
 
       {loading && !balances ? (
-        <div className="mt-2 space-y-1" aria-label="Loading balances">
+        <div className="space-y-2 p-4" aria-label="Loading balances">
           {[0, 1, 2].map((key) => (
-            <div key={key} className="h-12 rounded-[8px] bg-raised" />
+            <div key={key} className="h-10 rounded-lg bg-raised" />
           ))}
         </div>
       ) : !balances || balances.members.length === 0 ? (
-        <p className="mt-2 rounded-[8px] border border-dashed border-line-strong px-3 py-4 text-[13px] text-ink-muted">
+        <p className="px-4 py-6 text-[13px] text-ink-soft">
           Record an expense to see who owes what
         </p>
       ) : (
-        <div className="divide-y divide-line/70">
-          {balances.members.map((line) => {
-            const satang = amountToSatang(line.balance);
-            const positive = satang > 0;
-            const negative = satang < 0;
-            return (
-              <div key={line.username} className="flex items-center gap-2.5 py-2.5">
-                <Avatar username={line.username} size="sm" />
-                <div className="min-w-0 flex-1">
-                  <p className="flex items-center gap-1.5 truncate text-[13px] font-medium leading-5 text-ink">
-                    {titleCase(line.username)}
-                    {line.username === activeUser ? (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[340px] text-left text-[13px]">
+            <thead className="border-b border-line bg-cream text-[11px] font-bold uppercase tracking-wider text-ink-soft">
+              <tr>
+                <th scope="col" className="px-4 py-3">
+                  Member
+                </th>
+                <th scope="col" className="px-3 py-3 text-right">
+                  Total paid
+                </th>
+                <th scope="col" className="px-4 py-3 text-right">
+                  Net balance
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line">
+              {balances.members.map((line) => {
+                const satang = amountToSatang(line.balance);
+                const positive = satang > 0;
+                const negative = satang < 0;
+                const isActive = line.username === activeUser;
+                return (
+                  <tr key={line.username} className={isActive ? "bg-accent-subtle/60" : undefined}>
+                    <td className="px-4 py-3">
+                      <span className="flex items-center gap-2">
+                        <Avatar username={line.username} size="sm" />
+                        <span className="text-[13px] font-medium text-ink">
+                          {titleCase(line.username)}
+                        </span>
+                        {isActive ? (
+                          <span className="text-[10px] font-semibold text-accent-dark">you</span>
+                        ) : null}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3 text-right font-mono text-[12px] tabular-nums text-ink-soft">
+                      {formatThaiBaht(line.paid)}
+                    </td>
+                    <td className="px-4 py-3 text-right">
                       <span
-                        aria-label="you"
-                        title="You"
-                        className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent"
-                      />
-                    ) : null}
-                  </p>
-                  <p
-                    className="truncate font-mono text-[11px] leading-4 text-ink-muted"
-                    title={`Paid ${formatMoneyAmount(line.paid)} · owes ${formatMoneyAmount(line.owed)}`}
-                  >
-                    paid {formatMoneyAmount(line.paid)}
-                  </p>
-                </div>
-                <div className="shrink-0 text-right">
-                  <p
-                    className={`font-mono text-[13px] font-medium tabular-nums ${
-                      positive ? "text-positive" : negative ? "text-negative" : "text-ink-muted"
-                    }`}
-                  >
-                    {positive ? "+" : negative ? "−" : ""}
-                    {formatSatang(Math.abs(satang))}
-                  </p>
-                  <p
-                    className={`text-[11px] leading-4 ${
-                      positive ? "text-positive" : negative ? "text-negative" : "text-ink-muted"
-                    }`}
-                  >
-                    {positive ? "Gets back" : negative ? "Owes" : "Settled"}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
+                        className={`inline-flex min-w-[84px] justify-center rounded-full px-2 py-0.5 font-mono text-[12px] font-semibold tabular-nums ${
+                          positive
+                            ? "bg-positive-bg text-positive"
+                            : negative
+                              ? "bg-negative-bg text-negative"
+                              : "bg-raised text-ink-soft"
+                        }`}
+                      >
+                        {positive ? "+" : negative ? "−" : ""}
+                        {formatSatang(Math.abs(satang))} ฿
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot className="border-t border-line bg-cream">
+              <tr>
+                <td
+                  colSpan={2}
+                  className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-ink-soft"
+                >
+                  Total
+                </td>
+                <td className="px-4 py-3 text-right font-mono text-[13px] font-semibold tabular-nums text-positive">
+                  {formatThaiBaht(balances.total)}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
         </div>
       )}
-
-      <div className="mt-1 flex items-center justify-between border-t border-line pt-3 text-[12px]">
-        <span className="text-ink-muted">Total</span>
-        <span className="font-mono font-medium tabular-nums text-ink">
-          {formatMoneyAmount(balances?.total ?? "0.00")} THB
-        </span>
-      </div>
     </section>
   );
 }

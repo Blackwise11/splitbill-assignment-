@@ -2,24 +2,29 @@
 
 @theme {
   --font-sans:
-    var(--font-instrument-sans), "Segoe UI", ui-sans-serif, system-ui, -apple-system,
+    var(--font-jakarta), "Segoe UI", ui-sans-serif, system-ui, -apple-system,
     BlinkMacSystemFont, sans-serif;
   --font-mono:
     var(--font-plex-mono), "Cascadia Code", "SFMono-Regular", Consolas, ui-monospace, monospace;
 
-  --color-paper: #f4f0e8;
-  --color-paper-deep: #ebe3d5;
-  --color-card: #fdfbf7;
-  --color-raised: #efe8db;
-  --color-ink: #211c16;
-  --color-ink-soft: #5f5548;
-  --color-ink-muted: #7c7163;
-  --color-line: rgba(33, 28, 22, 0.11);
-  --color-line-strong: rgba(33, 28, 22, 0.2);
-  --color-accent: #9a5b15;
-  --color-accent-soft: #f2e3cb;
-  --color-positive: #2f6b4a;
-  --color-negative: #a33a2a;
+  /* Chowpa PDF palette */
+  --color-paper: #faf9f5;
+  --color-card: #ffffff;
+  --color-raised: #f5f5f4;
+  --color-cream: #faf8f2;
+  --color-ink: #1c1917;
+  --color-ink-soft: #57534e;
+  --color-ink-muted: #a8a29e;
+  --color-line: #e7e5e4;
+  --color-line-strong: #d6d3d1;
+  --color-accent: #d97706;
+  --color-accent-soft: #fef3c7;
+  --color-accent-subtle: #fffbeb;
+  --color-accent-dark: #92400e;
+  --color-positive: #059669;
+  --color-positive-bg: #ecfdf5;
+  --color-negative: #e11d48;
+  --color-negative-bg: #fff1f2;
 }
 
 :root {
@@ -69,7 +74,7 @@ select {
 }
 
 select {
-  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%237c7163' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%2357534e' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-position: right 12px center;
   background-repeat: no-repeat;
   padding-right: 32px;

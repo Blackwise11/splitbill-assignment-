@@ -181,7 +181,6 @@ export function formatThaiDateTime(isoTimestamp: string): string {
     hour: "2-digit",
     minute: "2-digit",
     timeZone: "Asia/Bangkok",
-    timeZoneName: "short",
   }).format(date);
 }
 

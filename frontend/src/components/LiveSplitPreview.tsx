@@ -2,7 +2,8 @@
 
 import { Check } from "lucide-react";
 
-import { formatSatang, type Share } from "@/lib/money";
+import { formatSatang } from "@/lib/money";
+import type { Share } from "@/lib/money";
 import type { SplitType } from "@/lib/types";
 import { titleCase } from "@/components/UserSwitcher";
 
@@ -47,41 +48,39 @@ export function LiveSplitPreview({
 
   return (
     <div
-      className="rounded-[12px] border border-ink/15 bg-[#faf5ea] p-4 shadow-[0_8px_24px_rgba(33,28,22,0.06)]"
+      className="rounded-r-xl rounded-l-sm border border-accent/25 border-l-4 border-l-accent bg-cream p-4 font-mono text-[13px] text-ink shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
       aria-live="polite"
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[12px] font-medium text-ink-soft">Split preview</p>
-          <p className="mt-1 font-mono text-[26px] font-medium leading-none tracking-[-0.02em] tabular-nums text-ink">
+          <p className="text-[11px] font-semibold text-ink-soft">Split preview</p>
+          <p className="mt-1 text-[26px] font-medium leading-none tracking-[-0.02em] tabular-nums text-ink">
             {hasTotal ? formatSatang(totalSatang) : "0.00"}
-            <span className="ml-1.5 text-[12px] font-normal tracking-normal text-ink-muted">
-              THB
-            </span>
+            <span className="ml-1.5 text-[13px] font-normal text-ink-muted">฿</span>
           </p>
         </div>
-        <span className="rounded-[4px] border border-line-strong px-1.5 py-0.5 text-[11px] text-ink-soft">
+        <span className="rounded-full border border-line-strong bg-card px-2 py-0.5 text-[10px] text-ink-soft">
           {mode === "equal" ? "Equal" : "Exact"} · {rows.length}{" "}
           {rows.length === 1 ? "person" : "people"}
         </span>
       </div>
 
-      <div className="mt-3 border-t border-dashed border-line-strong pt-1">
+      <div className="mt-3 border-t border-dashed border-accent/30 pt-1">
         {rows.length === 0 ? (
-          <p className="px-1 py-4 text-[12px] leading-5 text-ink-muted">
+          <p className="px-1 py-4 text-[11px] leading-5 text-ink-muted">
             {emptyMessage ?? "Choose at least one member to preview the split"}
           </p>
         ) : (
           <div className="divide-y divide-line/70">
             {rows.map((row) => (
               <div key={row.username} className="flex items-center justify-between gap-3 py-2">
-                <span className="truncate text-[13px] text-ink-soft">{titleCase(row.username)}</span>
+                <span className="truncate text-[12px] text-ink-soft">{titleCase(row.username)}</span>
                 <span
-                  className={`shrink-0 font-mono text-[13px] font-medium tabular-nums ${
+                  className={`shrink-0 text-[12px] font-medium tabular-nums ${
                     row.invalid ? "text-negative" : "text-ink"
                   }`}
                 >
-                  {row.invalid ? "Invalid" : `${formatSatang(row.amountSatang)} THB`}
+                  {row.invalid ? "Invalid" : `${formatSatang(row.amountSatang)} ฿`}
                 </span>
               </div>
             ))}
@@ -90,11 +89,11 @@ export function LiveSplitPreview({
       </div>
 
       {mode === "equal" ? (
-        <div className="mt-3 border-t border-dashed border-line-strong pt-3">
-          <p className="flex items-start gap-1.5 text-[12px] leading-5 text-ink-muted">
+        <div className="mt-3 border-t border-dashed border-accent/30 pt-3">
+          <p className="flex items-start gap-1.5 text-[11px] leading-5 text-ink-muted">
             {remainderCount > 0 ? (
               <>
-                <span className="shrink-0 font-mono font-medium text-accent">
+                <span className="shrink-0 font-medium text-accent">
                   +{formatSatang(remainderCount)}
                 </span>
                 <span>remainder to {remainderNamesText(remainderNames)}</span>
@@ -107,8 +106,8 @@ export function LiveSplitPreview({
           </p>
         </div>
       ) : (
-        <div className="mt-3 border-t border-dashed border-line-strong pt-3">
-          <div className="flex items-center justify-between gap-3 text-[12px]">
+        <div className="mt-3 border-t border-dashed border-accent/30 pt-3">
+          <div className="flex items-center justify-between gap-3 text-[11px]">
             <span className="text-ink-muted">
               {!hasTotal
                 ? "Enter an amount"
@@ -116,17 +115,17 @@ export function LiveSplitPreview({
                   ? "Fully allocated"
                   : remainingSatang < 0
                     ? "Over-allocated"
-                    : "Remaining"}
+                    : "Unallocated"}
             </span>
             <span
-              className={`font-mono font-medium tabular-nums ${
+              className={`font-medium tabular-nums ${
                 !hasTotal
                   ? "text-ink-muted"
                   : exactComplete
                     ? "text-positive"
                     : remainingSatang < 0
                       ? "text-negative"
-                      : "text-accent"
+                      : "text-negative"
               }`}
             >
               {hasTotal ? `${formatSatang(Math.abs(remainingSatang))} THB` : "—"}
@@ -144,7 +143,7 @@ export function LiveSplitPreview({
       )}
 
       <div className="mt-3 flex min-h-8 items-center justify-between gap-3">
-        <p className="text-[11px] leading-4 text-ink-muted">
+        <p className="text-[10px] leading-4 text-ink-muted">
           {mode === "equal"
             ? hasTotal
               ? "Remainder follows member order"
@@ -152,7 +151,7 @@ export function LiveSplitPreview({
             : "Shares must equal the total"}
         </p>
         {hasTotal && (mode === "equal" || exactComplete) ? (
-          <span className="inline-flex -rotate-2 items-center gap-1 rounded-[4px] border-2 border-ink/60 px-2 py-1 font-mono text-[11px] font-medium text-ink/80">
+          <span className="inline-flex -rotate-2 items-center gap-1 rounded-[4px] border-2 border-ink/60 px-2 py-1 text-[10px] font-medium text-ink/80">
             <Check size={16} strokeWidth={1.5} aria-hidden />
             Balanced
           </span>
