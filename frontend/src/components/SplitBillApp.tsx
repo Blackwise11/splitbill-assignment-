@@ -3,18 +3,22 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
+  createPayment,
   deleteExpense,
   errorMessage,
   getBalances,
   getExpenses,
   getGroups,
+  getSettleUp,
+  newIdempotencyKey,
 } from "@/lib/api";
-import type { Balances, Expense, Group, User } from "@/lib/types";
+import type { Balances, Expense, Group, SettleUp, Transfer, User } from "@/lib/types";
 import { BalancesPanel } from "@/components/BalancesPanel";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { ExpenseForm } from "@/components/ExpenseForm";
 import { ExpenseTable } from "@/components/ExpenseTable";
 import { GroupList, GroupSignal } from "@/components/GroupList";
+import { SettleUpPanel } from "@/components/SettleUpPanel";
 import { UserSwitcher, titleCase } from "@/components/UserSwitcher";
 
 export default function SplitBillApp() {
@@ -24,6 +28,7 @@ export default function SplitBillApp() {
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [balances, setBalances] = useState<Balances | null>(null);
+  const [settleUp, setSettleUp] = useState<SettleUp | null>(null);
   const [dataLoading, setDataLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -63,13 +68,15 @@ export default function SplitBillApp() {
     const requestId = ++dataRequest.current;
     setDataLoading(true);
     try {
-      const [expenseResult, balanceResult] = await Promise.all([
+      const [expenseResult, balanceResult, settlementResult] = await Promise.all([
         getExpenses(groupId, actor),
         getBalances(groupId, actor),
+        getSettleUp(groupId, actor),
       ]);
       if (requestId !== dataRequest.current) return;
       setExpenses(expenseResult.expenses);
       setBalances(balanceResult);
+      setSettleUp(settlementResult);
     } catch (caught: unknown) {
       if (requestId === dataRequest.current) setError(errorMessage(caught));
     } finally {
@@ -99,6 +106,7 @@ export default function SplitBillApp() {
     setSelectedGroupId(groupId);
     setExpenses([]);
     setBalances(null);
+    setSettleUp(null);
     setError(null);
     setDataLoading(true);
   }
@@ -113,6 +121,7 @@ export default function SplitBillApp() {
     setSelectedGroupId(null);
     setExpenses([]);
     setBalances(null);
+    setSettleUp(null);
     setDataLoading(false);
     setError(null);
     setNotice(null);
@@ -130,6 +139,29 @@ export default function SplitBillApp() {
       await deleteExpense(selectedGroupId, expenseId, user);
       await refreshData(selectedGroupId, user);
       setNotice("Expense deleted. It is retained as a soft-delete audit row.");
+    } catch (caught: unknown) {
+      setError(errorMessage(caught));
+    }
+  }
+
+  async function handleRecordPayment(transfer: Transfer) {
+    if (selectedGroupId === null) return;
+    try {
+      await createPayment(
+        selectedGroupId,
+        user,
+        {
+          from_user: transfer.from_user,
+          to_user: transfer.to_user,
+          amount: transfer.amount,
+          note: "Recorded from settle-up suggestion",
+        },
+        newIdempotencyKey(),
+      );
+      await refreshData(selectedGroupId, user);
+      setNotice(
+        `Repayment from ${titleCase(transfer.from_user)} to ${titleCase(transfer.to_user)} recorded.`,
+      );
     } catch (caught: unknown) {
       setError(errorMessage(caught));
     }
@@ -170,11 +202,19 @@ export default function SplitBillApp() {
             onSelect={handleSelectGroup}
           />
           {selectedGroup ? (
-            <BalancesPanel
-              balances={balances}
-              activeUser={user}
-              loading={dataLoading}
-            />
+            <>
+              <BalancesPanel
+                balances={balances}
+                activeUser={user}
+                loading={dataLoading}
+              />
+              <SettleUpPanel
+                settleUp={settleUp}
+                activeUser={user}
+                loading={dataLoading}
+                onRecordPayment={handleRecordPayment}
+              />
+            </>
           ) : null}
         </aside>
 

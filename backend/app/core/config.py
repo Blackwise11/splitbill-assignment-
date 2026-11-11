@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     )
 
     database_url: str = "postgresql+psycopg://splitbill:splitbill@localhost:5432/splitbill"
-    cors_origins: str = "http://localhost:3000"
+    cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
     log_level: str = "info"
 
     @property
