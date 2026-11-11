@@ -244,7 +244,7 @@ Observed results at the final revision:
 ```text
 backend (SQLite): 68 passed
 backend (PostgreSQL 16.15): 68 passed
-frontend: 9 passed
+frontend: 12 passed
 ruff check: All checks passed
 ruff format --check: 57 files already formatted
 eslint: no errors
@@ -281,7 +281,7 @@ case study can be inspected in history between `6977f25` and `2f38566`.
 | `docker compose up --build` (Docker Desktop 4.99 / WSL 3.0.5) | built and booted; `db`/`api` healthy, `web` serving |
 | Containerized Alembic + seed | pass; groups 1/2, five memberships, `NUMERIC(12,2)` confirmed |
 | Containerized browser flow | create, equal-split balance, repayment, payer delete, tombstone retention verified |
-| `npm test` | 9 passed |
+| `npm test` | 12 passed |
 | `ruff check .` / `ruff format --check .` | pass |
 | `npm run lint` | pass |
 | `npm run build` | pass |
