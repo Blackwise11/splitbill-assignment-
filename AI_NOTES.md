@@ -250,6 +250,7 @@ ruff format --check: 57 files already formatted
 eslint: no errors
 next build: success (static / route)
 docker compose config: valid
+docker compose up --build: db/api healthy, web serving
 ```
 
 The build also catches TypeScript errors that lint does not, and the browser flow verifies behavior
@@ -277,6 +278,9 @@ case study can be inspected in history between `6977f25` and `2f38566`.
 | `pytest -q` with `TEST_DATABASE_URL` (PostgreSQL 16.15) | 68 passed, including the 8-thread race |
 | Alembic upgrade + seed against PostgreSQL 16.15 | pass; groups 1/2, five memberships, `NUMERIC(12,2)` confirmed |
 | `docker compose config` (Docker CLI 29.9.3 / Compose 5.7.0) | valid; services `db`, `api`, `web` |
+| `docker compose up --build` (Docker Desktop 4.99 / WSL 3.0.5) | built and booted; `db`/`api` healthy, `web` serving |
+| Containerized Alembic + seed | pass; groups 1/2, five memberships, `NUMERIC(12,2)` confirmed |
+| Containerized browser flow | create, equal-split balance, repayment, payer delete, tombstone retention verified |
 | `npm test` | 9 passed |
 | `ruff check .` / `ruff format --check .` | pass |
 | `npm run lint` | pass |
@@ -291,21 +295,23 @@ case study can be inspected in history between `6977f25` and `2f38566`.
 
 **Environment status:** PostgreSQL 16.15 was installed from the official portable Windows binaries,
 initialized as a user-owned cluster on port 55432, migrated with Alembic, seeded, and used for the
-full test suite and a browser run. Docker CLI and Compose were installed per-user; `docker compose
-config` validates the project.
+full test suite and a browser run. Docker CLI and Compose were installed per-user, and Docker Desktop
+4.99 with WSL2 3.0.5 was installed after an elevated UAC approval and a reboot. The complete
+`db`/`api`/`web` Compose stack was then built and booted successfully.
 
-**Remaining limitation:** a Docker **engine** was not available. Docker Desktop/WSL2 requires an
-elevated installation and a WSL2 setup, and the session runs at medium integrity (the user is an
-administrator but UAC-elevated operations were unavailable). Consequently the `db`/`api`/`web`
-containers were not built or booted locally. The Compose file, Dockerfiles, PostgreSQL migration,
-seed, and full test suite were verified independently. Installing Docker Desktop and running
-`docker compose up --build` remains the final environment check.
+**Docker verification:** `docker compose up --build` pulled `postgres:16-alpine`, built both
+application images, ran Alembic and the seed script in the API container, and reported healthy
+status for `db` and `api`. The browser flow through `http://localhost:3000` created a `100.00`
+equal-split expense, showed `33.34 / 33.33 / 33.33`, recorded a repayment, soft-deleted the expense,
+and confirmed the tombstone plus its three shares remained in the containerized PostgreSQL database
+while balances/lists excluded it. The volume was then reset to a clean seeded state. No Docker
+limitation remains.
 
 The optional PostgreSQL test mode is guarded: `TEST_DATABASE_URL` must name a database ending in
 `_test`, so the fixture cannot drop a normal development database. The browser verification now runs
-against real PostgreSQL, not SQLite.
+against real PostgreSQL, both directly and through Compose.
 
-These limitations are also listed in `README.md`. They are disclosed rather than hidden.
+These environment details are also recorded in `README.md`. They are disclosed rather than hidden.
 
 ---
 

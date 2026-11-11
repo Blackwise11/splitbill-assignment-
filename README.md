@@ -562,19 +562,22 @@ it always produces a valid settlement.
 | `pytest` (backend, PostgreSQL 16.15) | **68 passed**, including the concurrency test |
 | Alembic upgrade + seed against PostgreSQL 16.15 | pass |
 | `docker compose config` (Compose 5.7.0) | pass |
+| `docker compose up --build` (Docker Desktop 4.99 / WSL 3.0.5) | **built and booted**; `db` + `api` healthy, `web` serving |
+| Containerized migration + seed | pass; 4 users, 2 groups, 5 memberships |
+| Browser flow through Compose stack | **verified**: create, balance, repay, soft-delete, list exclusion |
 | `ruff check .` | pass |
 | `ruff format --check .` | pass |
 | `npm test` (Vitest) | **9 passed** |
 | `npm run lint` | pass |
 | `npm run build` | pass |
 | Alembic offline SQL generation (`alembic upgrade head --sql`) | pass, PostgreSQL dialect |
-| Browser flow against PostgreSQL: group scoping, equal/exact preview, submit, delete, repayment, mobile layout | verified |
 
 PostgreSQL 16.15 was installed locally (portable binaries, no admin service) and the entire suite was
-run against it. Docker CLI 29.9.3 and Compose 5.7.0 were installed and `docker compose config`
-validated the stack. The Docker **engine** (Docker Desktop/WSL2) requires administrator rights and a
-WSL2 installation, neither of which was available to this non-elevated session, so the containers
-were not built/booted locally. See `AI_NOTES.md` for the exact verification protocol.
+run against it. Docker Desktop 4.99 with WSL2 3.0.5 was then installed, the stack was built with
+`docker compose up --build`, and the browser flow was verified against the containerized PostgreSQL
+database. The soft-deleted row and its three shares were confirmed to remain in PostgreSQL while
+being excluded from API balances, lists, and settle-up. The demo database was reset to a clean seeded
+state afterward. See `AI_NOTES.md` for the exact verification protocol.
 
 ---
 
@@ -597,9 +600,8 @@ were not built/booted locally. See `AI_NOTES.md` for the exact verification prot
 - **Test matrix:** an optional `TEST_DATABASE_URL` mode already runs the full suite against PostgreSQL
   16; wire it into CI as a PostgreSQL-service job alongside the hermetic SQLite run. Add a Playwright
   end-to-end suite for the browser flows.
-- **Docker:** the CLI and Compose are installed and `docker compose config` validates the stack, but
-  Docker Desktop/WSL2 requires administrator rights and was not available in the non-elevated session;
-  the containers were therefore not booted on this machine.
+- **Container hardening:** the images are development-grade; add image scanning, pinned base-image
+  digests, and production secret management before deployment.
 
 ---
 
