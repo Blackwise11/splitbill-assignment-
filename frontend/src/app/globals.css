@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans:
+    "Avenir Next", "Segoe UI", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    sans-serif;
+  --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman",
+    serif;
+  --font-mono: "SFMono-Regular", "Cascadia Code", "Roboto Mono", Consolas, monospace;
+}
+
+:root {
+  color-scheme: light;
+  --page: #f6f3ec;
+  --ink: #1c1917;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 8% -10%, rgba(16, 185, 129, 0.12), transparent 34rem),
+    radial-gradient(circle at 96% 4%, rgba(245, 158, 11, 0.1), transparent 30rem),
+    var(--page);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: rgba(6, 78, 59, 0.16);
+}
+
+button,
+select,
+input {
+  font: inherit;
+}
+
+input[type="text"],
+select {
+  appearance: none;
+}
+
+select {
+  background-image:
+    linear-gradient(45deg, transparent 50%, #78716c 50%),
+    linear-gradient(135deg, #78716c 50%, transparent 50%);
+  background-position:
+    calc(100% - 14px) calc(50% - 2px),
+    calc(100% - 9px) calc(50% - 2px);
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+}
