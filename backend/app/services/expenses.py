@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Literal
 
+from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import DomainValidationError, ForbiddenError, NotFoundError
@@ -14,6 +16,8 @@ from app.repositories import expenses as expense_repository
 from app.schemas.expenses import EqualSplit, ExactSplit, ExpenseCreate
 from app.services.allocation import ShareLine, allocate_equal, allocate_exact
 from app.services.money import parse_money, satang_to_decimal
+
+MAX_SQLITE_RETRIES = 5
 
 
 @dataclass(frozen=True, slots=True)
@@ -102,7 +106,12 @@ def create_expense(
     idempotency_key: str,
     payload: ExpenseCreate,
 ) -> CreateExpenseResult:
-    """Create an expense once per ``(group_id, Idempotency-Key)``."""
+    """Create an expense once per ``(group_id, Idempotency-Key)``.
+
+    The unique database constraint is the source of truth. A pre-read handles
+    the common replay case; an IntegrityError on commit handles simultaneous
+    requests that both passed the pre-read.
+    """
     existing = expense_repository.get_by_idempotency_key(session, group.id, idempotency_key)
     if existing is not None:
         return CreateExpenseResult(expense=existing, replayed=True)
@@ -110,18 +119,37 @@ def create_expense(
     total_satang = parse_money(payload.amount)
     split_type, allocation = _allocate(group, payload, total_satang)
 
-    expense = _new_expense(
-        group=group,
-        payload=payload,
-        idempotency_key=idempotency_key,
-        total_satang=total_satang,
-        split_type=split_type,
-        allocation=allocation,
-    )
-    session.add(expense)
-    session.commit()
-    session.refresh(expense)
-    return CreateExpenseResult(expense=expense, replayed=False)
+    for attempt in range(MAX_SQLITE_RETRIES):
+        expense = _new_expense(
+            group=group,
+            payload=payload,
+            idempotency_key=idempotency_key,
+            total_satang=total_satang,
+            split_type=split_type,
+            allocation=allocation,
+        )
+        try:
+            session.add(expense)
+            session.commit()
+            session.refresh(expense)
+            return CreateExpenseResult(expense=expense, replayed=False)
+        except IntegrityError:
+            session.rollback()
+            existing = expense_repository.get_by_idempotency_key(session, group.id, idempotency_key)
+            if existing is not None:
+                return CreateExpenseResult(expense=existing, replayed=True)
+            raise
+        except OperationalError as exc:
+            session.rollback()
+            # SQLite serializes writers; retry briefly in local/test runs.
+            if "database is locked" not in str(exc).lower() or attempt == MAX_SQLITE_RETRIES - 1:
+                raise
+            existing = expense_repository.get_by_idempotency_key(session, group.id, idempotency_key)
+            if existing is not None:
+                return CreateExpenseResult(expense=existing, replayed=True)
+            time.sleep(0.05 * (attempt + 1))
+
+    raise AssertionError("unreachable")
 
 
 def list_active_expenses(session: Session, group_id: int) -> list[Expense]:
