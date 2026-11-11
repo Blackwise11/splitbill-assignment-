@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { errorMessage, getGroups } from "@/lib/api";
 import type { Group, User } from "@/lib/types";
 import { ErrorBanner } from "@/components/ErrorBanner";
+import { ExpenseForm } from "@/components/ExpenseForm";
 import { GroupList, GroupSignal } from "@/components/GroupList";
 import { UserSwitcher, titleCase } from "@/components/UserSwitcher";
 
@@ -14,6 +15,7 @@ export default function SplitBillApp() {
   const [groupsLoading, setGroupsLoading] = useState(true);
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const groupsRequest = useRef(0);
 
   const selectedGroup = groups.find((group) => group.id === selectedGroupId) ?? null;
@@ -45,6 +47,12 @@ export default function SplitBillApp() {
     };
   }, [user]);
 
+  useEffect(() => {
+    if (!notice) return;
+    const timer = setTimeout(() => setNotice(null), 5000);
+    return () => clearTimeout(timer);
+  }, [notice]);
+
   function handleUserChange(nextUser: User) {
     if (nextUser === user) return;
     groupsRequest.current += 1;
@@ -53,6 +61,11 @@ export default function SplitBillApp() {
     setGroupsLoading(true);
     setSelectedGroupId(null);
     setError(null);
+    setNotice(null);
+  }
+
+  async function handleCreated() {
+    setNotice("Expense recorded. Every share is allocated to the exact satang.");
   }
 
   return (
@@ -78,6 +91,7 @@ export default function SplitBillApp() {
 
       <div className="mx-auto w-full max-w-7xl space-y-2 px-4 pt-4 sm:px-6">
         <ErrorBanner message={error} onDismiss={() => setError(null)} />
+        <ErrorBanner message={notice} tone="success" onDismiss={() => setNotice(null)} />
       </div>
 
       <main className="mx-auto grid w-full max-w-7xl gap-6 px-4 pb-16 pt-5 sm:px-6 lg:grid-cols-[320px_minmax(0,1fr)]">
@@ -92,43 +106,31 @@ export default function SplitBillApp() {
 
         <section className="space-y-5">
           {selectedGroup ? (
-            <div className="rounded-3xl border border-stone-200/80 bg-white/70 p-6 backdrop-blur">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-stone-500">
-                Active group · #{selectedGroup.id}
-              </p>
-              <h2 className="mt-1 font-serif text-3xl font-semibold tracking-tight text-stone-950">
-                {selectedGroup.name}
-              </h2>
-              <div className="mt-4">
-                <GroupSignal group={selectedGroup} />
+            <>
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-stone-200/80 bg-white/60 px-5 py-4 backdrop-blur">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-stone-500">
+                    Active group · #{selectedGroup.id}
+                  </p>
+                  <h2 className="mt-0.5 font-serif text-2xl font-semibold tracking-tight text-stone-950">
+                    {selectedGroup.name}
+                  </h2>
+                  <div className="mt-2">
+                    <GroupSignal group={selectedGroup} />
+                  </div>
+                </div>
+                <span className="rounded-full bg-white px-3 py-1.5 text-[11px] font-semibold text-stone-600 shadow-sm ring-1 ring-stone-200">
+                  {selectedGroup.member_count} members · THB
+                </span>
               </div>
-              <dl className="mt-6 grid gap-3 sm:grid-cols-3">
-                <div className="rounded-2xl border border-stone-200 bg-stone-50/80 p-4">
-                  <dt className="text-[10px] font-bold uppercase tracking-wide text-stone-500">
-                    Members
-                  </dt>
-                  <dd className="mt-1 text-2xl font-semibold text-stone-900">
-                    {selectedGroup.member_count}
-                  </dd>
-                </div>
-                <div className="rounded-2xl border border-stone-200 bg-stone-50/80 p-4">
-                  <dt className="text-[10px] font-bold uppercase tracking-wide text-stone-500">
-                    Currency
-                  </dt>
-                  <dd className="mt-1 text-2xl font-semibold text-stone-900">THB</dd>
-                </div>
-                <div className="rounded-2xl border border-stone-200 bg-stone-50/80 p-4">
-                  <dt className="text-[10px] font-bold uppercase tracking-wide text-stone-500">
-                    Acting as
-                  </dt>
-                  <dd className="mt-1 text-2xl font-semibold text-stone-900">{titleCase(user)}</dd>
-                </div>
-              </dl>
-              <p className="mt-6 text-sm leading-6 text-stone-500">
-                Select a group to scope every request. Only groups you belong to are ever returned
-                by the API.
-              </p>
-            </div>
+
+              <ExpenseForm
+                key={`${selectedGroup.id}-${user}`}
+                group={selectedGroup}
+                activeUser={user}
+                onCreated={handleCreated}
+              />
+            </>
           ) : groupsLoading ? (
             <div className="space-y-5" aria-label="Loading workspace">
               <div className="h-28 animate-pulse rounded-3xl bg-white/70" />
@@ -143,7 +145,7 @@ export default function SplitBillApp() {
               <p className="mt-2 max-w-sm text-sm leading-6 text-stone-500">
                 {groups.length === 0
                   ? `${titleCase(user)} is not a member of any group. Switch user to explore another workspace.`
-                  : "Pick one of your groups on the left to see who is in it."}
+                  : "Pick one of your groups on the left to record an expense."}
               </p>
             </div>
           )}
