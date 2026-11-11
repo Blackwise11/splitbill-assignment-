@@ -96,7 +96,9 @@ export function LiveSplitPreview({
         </div>
       ) : (
         <div className="mt-4 flex items-center justify-between gap-2 rounded-xl bg-emerald-100 px-3 py-2.5 text-xs font-semibold text-emerald-900">
-          <span>All members accounted for</span>
+          <span>
+            {rows.length === 0 ? "Select at least one member" : "All members accounted for"}
+          </span>
           <span className="font-mono tabular-nums">
             {hasTotal ? `${formatSatang(totalSatang)} THB` : "—"}
           </span>
