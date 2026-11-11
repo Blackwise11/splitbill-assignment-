@@ -1,7 +1,8 @@
-"""Pytest fixtures: a fresh SQLite database and seeded API client per test."""
+"""Pytest fixtures: a fresh database and seeded API client per test."""
 
 from __future__ import annotations
 
+import os
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -10,7 +11,7 @@ from app.core.database import create_db_engine, get_db
 from app.main import app
 from app.models import Base, Group, GroupMember, User
 from fastapi.testclient import TestClient
-from sqlalchemy import Engine
+from sqlalchemy import Engine, make_url
 from sqlalchemy.orm import Session, sessionmaker
 
 USERS = {
@@ -32,11 +33,33 @@ def database_path(tmp_path: Path) -> Path:
 
 @pytest.fixture()
 def engine(database_path: Path) -> Iterator[Engine]:
-    engine = create_db_engine(f"sqlite+pysqlite:///{database_path.as_posix()}")
-    Base.metadata.create_all(engine)
-    yield engine
-    Base.metadata.drop_all(engine)
-    engine.dispose()
+    """Use TEST_DATABASE_URL when supplied, otherwise a hermetic SQLite file."""
+    test_url = os.getenv("TEST_DATABASE_URL")
+    if test_url:
+        url = make_url(test_url)
+        if url.get_backend_name().startswith("postgres") and not (url.database or "").endswith(
+            "_test"
+        ):
+            raise RuntimeError(
+                "TEST_DATABASE_URL must point to a PostgreSQL database whose name ends in '_test'."
+            )
+        database_engine = create_db_engine(test_url)
+        Base.metadata.drop_all(database_engine)
+        Base.metadata.create_all(database_engine)
+        try:
+            yield database_engine
+        finally:
+            Base.metadata.drop_all(database_engine)
+            database_engine.dispose()
+        return
+
+    database_engine = create_db_engine(f"sqlite+pysqlite:///{database_path.as_posix()}")
+    Base.metadata.create_all(database_engine)
+    try:
+        yield database_engine
+    finally:
+        Base.metadata.drop_all(database_engine)
+        database_engine.dispose()
 
 
 @pytest.fixture()
