@@ -19,8 +19,8 @@ export function ErrorBanner({ message, tone = "error", onDismiss }: ErrorBannerP
       role={isError ? "alert" : "status"}
       className={
         isError
-          ? "flex items-start gap-2.5 rounded-xl border border-negative/20 bg-negative-bg px-3.5 py-2.5 text-[13px] leading-5 text-negative"
-          : "flex items-start gap-2.5 rounded-xl border border-positive/20 bg-positive-bg px-3.5 py-2.5 text-[13px] leading-5 text-positive"
+          ? "flex items-start gap-2.5 rounded-[10px] border border-negative/25 bg-[#fbf2ef] px-3 py-2.5 text-[13px] leading-5 text-negative"
+          : "flex items-start gap-2.5 rounded-[10px] border border-positive/25 bg-[#f1f6f2] px-3 py-2.5 text-[13px] leading-5 text-positive"
       }
     >
       <Icon size={16} strokeWidth={1.5} className="mt-0.5 shrink-0" aria-hidden />

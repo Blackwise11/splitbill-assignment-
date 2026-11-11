@@ -3,9 +3,8 @@
 import { useState } from "react";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 
-import { formatThaiBaht } from "@/lib/format";
+import { formatMoneyAmount } from "@/lib/money";
 import type { SettleUp, Transfer } from "@/lib/types";
-import { SectionHeading } from "@/components/SectionHeading";
 import { titleCase } from "@/components/UserSwitcher";
 
 interface SettleUpPanelProps {
@@ -39,27 +38,20 @@ export function SettleUpPanel({
   const count = settleUp?.transaction_count ?? 0;
 
   return (
-    <section className="rounded-xl border border-line bg-card shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-      <div className="border-b border-line px-4 pt-4 pb-3">
-        <SectionHeading
-          title="Settle up"
-          className="mb-0"
-          meta={
-            <span className="rounded-full bg-raised px-2 py-0.5 font-mono text-[10px] text-ink-soft">
-              {count} {count === 1 ? "transfer" : "transfers"}
-            </span>
-          }
-        />
+    <section className="rounded-[14px] border border-line bg-card p-4">
+      <div className="mb-1 flex items-baseline justify-between gap-2">
+        <h2 className="text-[14px] font-medium text-ink">Settle up</h2>
+        <span className="font-mono text-[12px] text-ink-muted">
+          {count} {count === 1 ? "transfer" : "transfers"}
+        </span>
       </div>
 
       {loading && !settleUp ? (
-        <div className="p-4">
-          <div className="h-16 rounded-lg bg-raised" />
-        </div>
+        <div className="mt-2 h-16 rounded-[8px] bg-raised" />
       ) : !settleUp ? (
-        <p className="px-4 py-5 text-[13px] text-ink-soft">Balances appear after an expense</p>
+        <p className="mt-2 text-[13px] text-ink-muted">Balances appear after an expense</p>
       ) : count === 0 ? (
-        <div className="flex items-start gap-2.5 px-4 py-4">
+        <div className="mt-2 flex items-start gap-2 py-1">
           <CheckCircle2
             size={16}
             strokeWidth={1.5}
@@ -67,17 +59,17 @@ export function SettleUpPanel({
             aria-hidden
           />
           <div>
-            <p className="text-[13px] font-semibold text-ink">Everyone is square</p>
-            <p className="mt-0.5 text-[12px] text-ink-soft">Nothing to settle right now</p>
+            <p className="text-[13px] font-medium text-ink">Everyone is square</p>
+            <p className="mt-0.5 text-[12px] text-ink-muted">Nothing to settle right now</p>
           </div>
         </div>
       ) : (
-        <div className="divide-y divide-line">
+        <div className="mt-2 divide-y divide-line/70">
           {settleUp.transactions.map((transfer) => {
             const isMine = transfer.from_user === activeUser;
             const isBusy = recording === transferKey(transfer);
             return (
-              <div key={transferKey(transfer)} className="px-4 py-3">
+              <div key={transferKey(transfer)} className="py-3">
                 <div className="flex items-center justify-between gap-2">
                   <span className="flex min-w-0 items-center gap-1.5 text-[13px] font-medium text-ink">
                     <span className="truncate">{titleCase(transfer.from_user)}</span>
@@ -89,8 +81,8 @@ export function SettleUpPanel({
                     />
                     <span className="truncate">{titleCase(transfer.to_user)}</span>
                   </span>
-                  <span className="shrink-0 font-mono text-[12px] font-semibold tabular-nums text-ink">
-                    {formatThaiBaht(transfer.amount)}
+                  <span className="shrink-0 font-mono text-[13px] font-medium tabular-nums text-ink">
+                    {formatMoneyAmount(transfer.amount)}
                   </span>
                 </div>
                 <div className="mt-1.5 flex items-center justify-between gap-2">
@@ -100,7 +92,7 @@ export function SettleUpPanel({
                       type="button"
                       onClick={() => void record(transfer)}
                       disabled={isBusy}
-                      className="h-7 rounded-md bg-ink px-2.5 text-[11px] font-semibold text-card transition-colors duration-150 hover:bg-stone-800 disabled:opacity-60"
+                      className="h-7 rounded-[6px] bg-ink px-2.5 text-[11px] font-medium text-paper transition-colors duration-150 hover:bg-[#332b22] disabled:opacity-60"
                     >
                       {isBusy ? "Recording…" : "Mark paid"}
                     </button>

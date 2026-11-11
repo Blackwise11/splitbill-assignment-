@@ -4,10 +4,6 @@ SplitBill is a shared-expense application that never loses a satang. It combines
 FastAPI/SQLAlchemy backend with a Next.js single-page UI, integer-satang arithmetic, deterministic
 remainder allocation, zero-sum balances, idempotent writes, and payer-only soft deletion.
 
-The frontend follows the **Chowpa take-home PDF visual system**: warm `#FAF9F5` paper, white card
-surfaces, amber section bars and callouts, Plus Jakarta Sans, and IBM Plex Mono for tabular money
-figures.
-
 **Stack:** Python 3.12+ · FastAPI · SQLAlchemy 2.0 · Alembic · Pydantic v2 · PostgreSQL 16 ·
 Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · Pytest · Vitest · Ruff · ESLint
 
@@ -24,7 +20,7 @@ Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · Pytest ·
 - Optional extension: greedy settle-up suggestions and repayment recording.
 - Polished responsive UI with a live split preview that mirrors the backend algorithm exactly.
 - Seeded users and groups, Alembic migration, Docker Compose orchestration.
-- 68 backend tests and 12 frontend unit tests, all passing.
+- 68 backend tests and 9 frontend unit tests, all passing.
 
 ---
 
@@ -505,11 +501,6 @@ The frontend stores and calculates whole satang using JavaScript integers. It do
 converted with integer multiplication and addition. Formatting is manual integer grouping, so
 `100000` satang renders as `1,000.00` without a locale-dependent float round-trip.
 
-`frontend/src/lib/format.ts` exposes the Chowpa utility names:
-`formatThaiBaht`, `formatSatangThaiBaht`, and `calculateEqualSplit`. They are implemented on top of the
-integer-satang helpers rather than the `parseFloat` sample, preserving the zero-float guarantee while
-producing the same displayed values.
-
 Examples:
 
 ```text
@@ -576,7 +567,7 @@ it always produces a valid settlement.
 | Browser flow through Compose stack | **verified**: create, balance, repay, soft-delete, list exclusion |
 | `ruff check .` | pass |
 | `ruff format --check .` | pass |
-| `npm test` (Vitest) | **12 passed** |
+| `npm test` (Vitest) | **9 passed** |
 | `npm run lint` | pass |
 | `npm run build` | pass |
 | Alembic offline SQL generation (`alembic upgrade head --sql`) | pass, PostgreSQL dialect |

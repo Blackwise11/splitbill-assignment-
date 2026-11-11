@@ -17,8 +17,7 @@ import { BalancesPanel } from "@/components/BalancesPanel";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { ExpenseForm } from "@/components/ExpenseForm";
 import { ExpenseTable } from "@/components/ExpenseTable";
-import { GroupSummary } from "@/components/GroupSummary";
-import { GroupTabs } from "@/components/GroupTabs";
+import { GroupList, GroupSignal } from "@/components/GroupList";
 import { SettleUpPanel } from "@/components/SettleUpPanel";
 import { UserSwitcher, titleCase } from "@/components/UserSwitcher";
 
@@ -160,9 +159,7 @@ export default function SplitBillApp() {
         newIdempotencyKey(),
       );
       await refreshData(selectedGroupId, user);
-      setNotice(
-        `Repayment recorded from ${titleCase(transfer.from_user)} to ${titleCase(transfer.to_user)}`,
-      );
+      setNotice(`Repayment recorded from ${titleCase(transfer.from_user)} to ${titleCase(transfer.to_user)}`);
     } catch (caught: unknown) {
       setError(errorMessage(caught));
     }
@@ -170,43 +167,22 @@ export default function SplitBillApp() {
 
   return (
     <div className="min-h-screen">
-      <header className="border-b border-line bg-paper">
-        <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between gap-4">
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="flex items-center gap-2.5">
-                <span
-                  aria-hidden
-                  className="h-8 w-1.5 -rotate-3 rounded-full bg-accent"
-                />
-                <div>
-                  <p className="text-[20px] font-bold leading-5 tracking-[-0.02em] text-ink">
-                    Chowpa
-                  </p>
-                  <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-soft">
-                    SplitBill
-                  </p>
-                </div>
-              </div>
-              <span className="hidden items-center rounded-full border border-accent/30 bg-accent-soft/70 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-accent-dark md:inline-flex">
-                Project brief · SplitBill
-              </span>
+      <header className="sticky top-0 z-30 border-b border-line bg-paper/95">
+        <div className="mx-auto flex h-16 w-full max-w-[1440px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[8px] border border-ink/25 font-mono text-[17px] font-medium text-ink">
+              ฿
+            </span>
+            <div className="min-w-0">
+              <p className="text-[17px] font-semibold leading-5 tracking-[-0.01em] text-ink">
+                SplitBill
+              </p>
+              <p className="hidden truncate text-[12px] leading-4 text-ink-muted sm:block">
+                Shared expenses, settled to the satang
+              </p>
             </div>
-            <UserSwitcher activeUser={user} onChange={handleUserChange} />
           </div>
-
-          <div className="flex items-center gap-3 border-t border-line py-2.5">
-            <GroupTabs
-              groups={groups}
-              selectedGroupId={selectedGroupId}
-              loading={groupsLoading}
-              onSelect={handleSelectGroup}
-              onRefresh={
-                selectedGroup ? () => void refreshData(selectedGroup.id, user) : undefined
-              }
-              refreshing={dataLoading}
-            />
-          </div>
+          <UserSwitcher activeUser={user} onChange={handleUserChange} />
         </div>
       </header>
 
@@ -215,61 +191,87 @@ export default function SplitBillApp() {
         <ErrorBanner message={notice} tone="success" onDismiss={() => setNotice(null)} />
       </div>
 
-      <main className="mx-auto w-full max-w-[1440px] space-y-6 px-4 pt-5 pb-14 sm:px-6 lg:px-8">
-        {selectedGroup ? (
-          <>
-            <GroupSummary group={selectedGroup} balances={balances} activeUser={user} />
-
-            <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
-              <ExpenseForm
-                key={`${selectedGroup.id}-${user}`}
-                group={selectedGroup}
+      <main className="mx-auto grid w-full max-w-[1440px] gap-5 px-4 pb-12 pt-5 sm:px-6 lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-6 lg:px-8">
+        <aside className="space-y-4">
+          <GroupList
+            groups={groups}
+            selectedGroupId={selectedGroupId}
+            loading={groupsLoading}
+            onSelect={handleSelectGroup}
+            onRefresh={
+              selectedGroup ? () => void refreshData(selectedGroup.id, user) : undefined
+            }
+            refreshing={dataLoading}
+          />
+          {selectedGroup ? (
+            <>
+              <BalancesPanel balances={balances} activeUser={user} loading={dataLoading} />
+              <SettleUpPanel
+                settleUp={settleUp}
                 activeUser={user}
-                onCreated={handleCreated}
+                loading={dataLoading}
+                onRecordPayment={handleRecordPayment}
               />
+            </>
+          ) : null}
+        </aside>
 
-              <div className="space-y-6">
-                <BalancesPanel balances={balances} activeUser={user} loading={dataLoading} />
-                <SettleUpPanel
-                  settleUp={settleUp}
+        <section className="min-w-0 space-y-4">
+          {selectedGroup ? (
+            <>
+              <div className="hidden flex-wrap items-end justify-between gap-4 border-b border-line pb-4 lg:flex">
+                <div className="min-w-0">
+                  <p className="text-[12px] leading-4 text-ink-muted">
+                    Group {selectedGroup.id} · {selectedGroup.member_count} members
+                  </p>
+                  <h2 className="mt-1 truncate text-[28px] font-medium leading-8 tracking-[-0.02em] text-ink">
+                    {selectedGroup.name}
+                  </h2>
+                  <div className="mt-2">
+                    <GroupSignal group={selectedGroup} />
+                  </div>
+                </div>
+              </div>
+
+              <div
+                className={
+                  dataLoading ? "opacity-70 transition-opacity duration-200" : undefined
+                }
+              >
+                <ExpenseForm
+                  key={`${selectedGroup.id}-${user}`}
+                  group={selectedGroup}
                   activeUser={user}
-                  loading={dataLoading}
-                  onRecordPayment={handleRecordPayment}
-                />
-                <ExpenseTable
-                  expenses={expenses}
-                  activeUser={user}
-                  loading={dataLoading}
-                  onDelete={handleDelete}
+                  onCreated={handleCreated}
                 />
               </div>
+
+              <ExpenseTable
+                expenses={expenses}
+                activeUser={user}
+                loading={dataLoading}
+                onDelete={handleDelete}
+              />
+            </>
+          ) : groupsLoading ? (
+            <div className="space-y-4" aria-label="Loading workspace">
+              <div className="h-24 rounded-[14px] bg-raised" />
+              <div className="h-80 rounded-[14px] bg-raised" />
             </div>
-          </>
-        ) : groupsLoading ? (
-          <div className="space-y-6" aria-label="Loading workspace">
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="h-28 rounded-xl bg-raised" />
-              <div className="h-28 rounded-xl bg-raised" />
-              <div className="h-28 rounded-xl bg-raised" />
+          ) : (
+            <div className="flex min-h-[360px] flex-col items-center justify-center rounded-[14px] border border-line bg-card px-6 text-center">
+              <span className="font-mono text-[42px] leading-none text-ink/15">฿</span>
+              <h2 className="mt-3 text-[20px] font-medium text-ink">
+                {groups.length === 0 ? "No groups yet" : "Choose a group"}
+              </h2>
+              <p className="mt-1 max-w-sm text-[13px] leading-5 text-ink-muted">
+                {groups.length === 0
+                  ? `${titleCase(user)} is not a member of any group. Switch user to see another workspace`
+                  : "Pick one of your groups to see balances and record an expense"}
+              </p>
             </div>
-            <div className="grid gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
-              <div className="h-96 rounded-xl bg-raised" />
-              <div className="h-96 rounded-xl bg-raised" />
-            </div>
-          </div>
-        ) : (
-          <div className="flex min-h-[360px] flex-col items-center justify-center rounded-xl border border-line bg-card px-6 text-center">
-            <span className="font-mono text-[42px] leading-none text-accent/30">฿</span>
-            <h2 className="mt-3 text-[20px] font-bold text-ink">
-              {groups.length === 0 ? "No groups yet" : "Choose a group"}
-            </h2>
-            <p className="mt-1 max-w-sm text-[13px] leading-5 text-ink-soft">
-              {groups.length === 0
-                ? `${titleCase(user)} is not a member of any group. Switch user to see another workspace`
-                : "Pick one of your groups to see balances and record an expense"}
-            </p>
-          </div>
-        )}
+          )}
+        </section>
       </main>
     </div>
   );
