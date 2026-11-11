@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ReceiptText, Trash2 } from "lucide-react";
 
 import { formatMoneyAmount, formatThaiDateTime } from "@/lib/money";
 import type { Expense } from "@/lib/types";
@@ -11,6 +12,24 @@ interface ExpenseTableProps {
   activeUser: string;
   loading: boolean;
   onDelete: (expenseId: number) => Promise<void>;
+}
+
+function SplitTag({ type }: { type: Expense["split_type"] }) {
+  return (
+    <span className="inline-block rounded-[4px] border border-line px-1.5 py-0.5 text-[10px] capitalize text-ink-soft">
+      {type}
+    </span>
+  );
+}
+
+function ShareLine({ shares }: { shares: Record<string, string> }) {
+  return (
+    <p className="mt-1 truncate font-mono text-[11px] leading-4 text-ink-muted">
+      {Object.entries(shares)
+        .map(([member, share]) => `${titleCase(member)} ${formatMoneyAmount(share)}`)
+        .join(" · ")}
+    </p>
+  );
 }
 
 export function ExpenseTable({ expenses, activeUser, loading, onDelete }: ExpenseTableProps) {
@@ -28,112 +47,103 @@ export function ExpenseTable({ expenses, activeUser, loading, onDelete }: Expens
   }
 
   return (
-    <section className="overflow-hidden rounded-3xl border border-stone-200/80 bg-white/95 shadow-[0_24px_60px_-45px_rgba(28,25,23,0.65)]">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-200/80 px-5 py-4">
+    <section className="overflow-hidden rounded-[14px] border border-line bg-card">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-5 py-4">
         <div>
-          <h2 className="font-serif text-lg font-semibold text-stone-900">Expense history</h2>
-          <p className="text-xs text-stone-500">Newest first · soft-deleted rows are hidden</p>
+          <h2 className="text-[16px] font-medium leading-6 text-ink">Expenses</h2>
+          <p className="text-[12px] leading-4 text-ink-muted">
+            Newest first · deleted expenses hidden
+          </p>
         </div>
-        <span className="rounded-full bg-stone-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-stone-500">
-          {expenses.length} active
+        <span className="font-mono text-[12px] text-ink-muted">
+          {expenses.length} {expenses.length === 1 ? "expense" : "expenses"}
         </span>
       </div>
 
       {loading && expenses.length === 0 ? (
-        <div className="space-y-2 p-5" aria-label="Loading expenses">
+        <div className="space-y-px bg-line/40" aria-label="Loading expenses">
           {[0, 1, 2].map((key) => (
-            <div key={key} className="h-16 animate-pulse rounded-xl bg-stone-100" />
+            <div key={key} className="h-16 bg-card" />
           ))}
         </div>
       ) : expenses.length === 0 ? (
-        <div className="px-6 py-14 text-center">
-          <p className="text-3xl" aria-hidden>
-            🧾
-          </p>
-          <p className="mt-2 text-sm font-semibold text-stone-700">No expenses yet.</p>
-          <p className="mt-1 text-xs text-stone-500">
-            Add the first one above. Every satang will be accounted for.
-          </p>
+        <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
+          <ReceiptText size={16} strokeWidth={1.5} className="text-ink-muted" aria-hidden />
+          <p className="mt-2 text-[14px] font-medium text-ink">No expenses yet</p>
+          <p className="mt-1 text-[12px] text-ink-muted">Add the first expense above</p>
         </div>
       ) : (
         <>
           <div className="hidden overflow-x-auto lg:block">
-            <table className="w-full border-collapse text-left text-sm">
+            <table className="w-full border-collapse text-left">
               <thead>
-                <tr className="bg-stone-50/80 text-[10px] uppercase tracking-[0.14em] text-stone-500">
-                  <th scope="col" className="px-5 py-3 font-semibold">
+                <tr className="border-b border-line">
+                  <th scope="col" className="px-5 py-2.5 text-[12px] font-medium text-ink-muted">
                     Description
                   </th>
-                  <th scope="col" className="px-3 py-3 font-semibold">
+                  <th scope="col" className="px-3 py-2.5 text-[12px] font-medium text-ink-muted">
                     Paid by
                   </th>
-                  <th scope="col" className="px-3 py-3 text-right font-semibold">
+                  <th
+                    scope="col"
+                    className="px-3 py-2.5 text-right text-[12px] font-medium text-ink-muted"
+                  >
                     Amount
                   </th>
-                  <th scope="col" className="px-3 py-3 font-semibold">
+                  <th scope="col" className="px-3 py-2.5 text-[12px] font-medium text-ink-muted">
                     Split
                   </th>
-                  <th scope="col" className="px-3 py-3 font-semibold">
-                    When
+                  <th scope="col" className="px-3 py-2.5 text-[12px] font-medium text-ink-muted">
+                    Date
                   </th>
-                  <th scope="col" className="px-5 py-3 text-right font-semibold">
+                  <th scope="col" className="px-5 py-2.5 text-right">
                     <span className="sr-only">Actions</span>
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone-100">
+              <tbody>
                 {expenses.map((expense) => {
                   const canDelete = expense.paid_by === activeUser;
                   const isConfirming = confirmingId === expense.id;
                   const isDeleting = deletingId === expense.id;
                   return (
-                    <tr key={expense.id} className="align-top transition hover:bg-stone-50/70">
-                      <td className="max-w-[240px] px-5 py-4">
-                        <p className="font-semibold text-stone-900">{expense.description}</p>
-                        <p className="mt-0.5 font-mono text-[10px] text-stone-400">
+                    <tr
+                      key={expense.id}
+                      className="border-b border-line/70 align-top last:border-0"
+                    >
+                      <td className="max-w-[240px] px-5 py-3.5">
+                        <p className="text-[13px] font-medium leading-5 text-ink">
+                          {expense.description}
+                        </p>
+                        <p className="mt-0.5 font-mono text-[10px] text-ink-muted">
                           #{expense.id}
                         </p>
                       </td>
-                      <td className="px-3 py-4">
-                        <span className="inline-flex items-center gap-2 text-stone-700">
+                      <td className="px-3 py-3.5">
+                        <span className="inline-flex items-center gap-2">
                           <Avatar username={expense.paid_by} size="sm" />
-                          <span className="text-xs font-medium">
+                          <span className="text-[12px] text-ink-soft">
                             {titleCase(expense.paid_by)}
                             {expense.paid_by === activeUser ? (
-                              <span className="ml-1 text-[10px] text-emerald-700">you</span>
+                              <span className="ml-1 text-[11px] text-ink-muted">you</span>
                             ) : null}
                           </span>
                         </span>
                       </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-right">
-                        <span className="font-mono text-sm font-bold tabular-nums text-stone-900">
+                      <td className="whitespace-nowrap px-3 py-3.5 text-right">
+                        <span className="font-mono text-[13px] font-medium tabular-nums text-ink">
                           {formatMoneyAmount(expense.amount)}
                         </span>
-                        <span className="ml-1 text-[10px] font-semibold text-stone-400">THB</span>
+                        <span className="ml-1 font-mono text-[10px] text-ink-muted">THB</span>
                       </td>
-                      <td className="max-w-[260px] px-3 py-4">
-                        <span
-                          className={`inline-block rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide ${
-                            expense.split_type === "equal"
-                              ? "bg-emerald-100 text-emerald-900"
-                              : "bg-amber-100 text-amber-900"
-                          }`}
-                        >
-                          {expense.split_type}
-                        </span>
-                        <p className="mt-1 text-[10px] leading-4 text-stone-500">
-                          {Object.entries(expense.shares)
-                            .map(
-                              ([member, share]) =>
-                                `${titleCase(member)} ${formatMoneyAmount(share)}`,
-                            )
-                            .join(" · ")}
-                        </p>
+                      <td className="max-w-[260px] px-3 py-3.5">
+                        <SplitTag type={expense.split_type} />
+                        <ShareLine shares={expense.shares} />
                       </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-xs text-stone-500">
+                      <td className="whitespace-nowrap px-3 py-3.5 text-[12px] text-ink-muted">
                         {formatThaiDateTime(expense.created_at)}
                       </td>
-                      <td className="px-5 py-4 text-right">
+                      <td className="px-5 py-3.5 text-right">
                         {canDelete ? (
                           isConfirming ? (
                             <div className="flex items-center justify-end gap-1.5">
@@ -141,7 +151,7 @@ export function ExpenseTable({ expenses, activeUser, loading, onDelete }: Expens
                                 type="button"
                                 onClick={() => setConfirmingId(null)}
                                 disabled={isDeleting}
-                                className="rounded-lg border border-stone-300 px-2 py-1 text-[10px] font-semibold text-stone-600 transition hover:bg-stone-100"
+                                className="rounded-[6px] px-2 py-1 text-[11px] font-medium text-ink-muted transition-colors hover:bg-raised"
                               >
                                 Cancel
                               </button>
@@ -149,22 +159,23 @@ export function ExpenseTable({ expenses, activeUser, loading, onDelete }: Expens
                                 type="button"
                                 onClick={() => void remove(expense.id)}
                                 disabled={isDeleting}
-                                className="rounded-lg bg-rose-600 px-2 py-1 text-[10px] font-bold text-white transition hover:bg-rose-700 disabled:cursor-wait disabled:opacity-60"
+                                className="rounded-[6px] bg-negative px-2 py-1 text-[11px] font-medium text-white transition-colors hover:bg-[#8c3023] disabled:opacity-60"
                               >
-                                {isDeleting ? "Deleting…" : "Confirm"}
+                                {isDeleting ? "Deleting…" : "Delete"}
                               </button>
                             </div>
                           ) : (
                             <button
                               type="button"
                               onClick={() => setConfirmingId(expense.id)}
-                              className="rounded-lg border border-rose-200 px-2.5 py-1 text-[10px] font-semibold text-rose-700 transition hover:bg-rose-50"
+                              className="inline-flex items-center gap-1 rounded-[6px] px-2 py-1 text-[11px] font-medium text-negative transition-colors duration-150 hover:bg-negative/5"
                             >
+                              <Trash2 size={16} strokeWidth={1.5} aria-hidden />
                               Delete
                             </button>
                           )
                         ) : (
-                          <span className="text-[10px] text-stone-400">payer only</span>
+                          <span className="text-[11px] text-ink-muted">Payer only</span>
                         )}
                       </td>
                     </tr>
@@ -174,7 +185,7 @@ export function ExpenseTable({ expenses, activeUser, loading, onDelete }: Expens
             </table>
           </div>
 
-          <div className="divide-y divide-stone-100 lg:hidden">
+          <div className="divide-y divide-line/70 lg:hidden">
             {expenses.map((expense) => {
               const canDelete = expense.paid_by === activeUser;
               const isConfirming = confirmingId === expense.id;
@@ -183,29 +194,24 @@ export function ExpenseTable({ expenses, activeUser, loading, onDelete }: Expens
                 <article key={expense.id} className="p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="font-semibold text-stone-900">{expense.description}</p>
-                      <p className="mt-0.5 text-[10px] text-stone-500">
+                      <p className="text-[13px] font-medium text-ink">{expense.description}</p>
+                      <p className="mt-0.5 text-[11px] text-ink-muted">
                         {titleCase(expense.paid_by)} paid · {formatThaiDateTime(expense.created_at)}
                       </p>
                     </div>
-                    <p className="shrink-0 font-mono text-sm font-bold tabular-nums text-stone-900">
+                    <p className="shrink-0 font-mono text-[13px] font-medium tabular-nums text-ink">
                       {formatMoneyAmount(expense.amount)}
-                      <span className="ml-1 text-[9px] text-stone-400">THB</span>
+                      <span className="ml-1 text-[10px] font-normal text-ink-muted">THB</span>
                     </p>
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide ${
-                        expense.split_type === "equal"
-                          ? "bg-emerald-100 text-emerald-900"
-                          : "bg-amber-100 text-amber-900"
-                      }`}
-                    >
-                      {expense.split_type}
-                    </span>
-                    <span className="text-[10px] text-stone-500">
+                    <SplitTag type={expense.split_type} />
+                    <span className="text-[11px] text-ink-muted">
                       {Object.entries(expense.shares)
-                        .map(([member, share]) => `${titleCase(member)} ${formatMoneyAmount(share)}`)
+                        .map(
+                          ([member, share]) =>
+                            `${titleCase(member)} ${formatMoneyAmount(share)}`,
+                        )
                         .join(" · ")}
                     </span>
                   </div>
@@ -217,7 +223,7 @@ export function ExpenseTable({ expenses, activeUser, loading, onDelete }: Expens
                             type="button"
                             onClick={() => setConfirmingId(null)}
                             disabled={isDeleting}
-                            className="rounded-lg border border-stone-300 px-2.5 py-1 text-[10px] font-semibold text-stone-600"
+                            className="rounded-[6px] px-2 py-1 text-[11px] font-medium text-ink-muted"
                           >
                             Cancel
                           </button>
@@ -225,7 +231,7 @@ export function ExpenseTable({ expenses, activeUser, loading, onDelete }: Expens
                             type="button"
                             onClick={() => void remove(expense.id)}
                             disabled={isDeleting}
-                            className="rounded-lg bg-rose-600 px-2.5 py-1 text-[10px] font-bold text-white disabled:opacity-60"
+                            className="rounded-[6px] bg-negative px-2 py-1 text-[11px] font-medium text-white disabled:opacity-60"
                           >
                             {isDeleting ? "Deleting…" : "Confirm delete"}
                           </button>
@@ -234,8 +240,9 @@ export function ExpenseTable({ expenses, activeUser, loading, onDelete }: Expens
                         <button
                           type="button"
                           onClick={() => setConfirmingId(expense.id)}
-                          className="rounded-lg border border-rose-200 px-2.5 py-1 text-[10px] font-semibold text-rose-700"
+                          className="inline-flex items-center gap-1 rounded-[6px] px-2 py-1 text-[11px] font-medium text-negative"
                         >
+                          <Trash2 size={16} strokeWidth={1.5} aria-hidden />
                           Delete
                         </button>
                       )}

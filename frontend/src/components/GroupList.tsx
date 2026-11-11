@@ -1,5 +1,7 @@
 "use client";
 
+import { ChevronRight, RefreshCw } from "lucide-react";
+
 import type { Group } from "@/lib/types";
 import { Avatar, titleCase } from "@/components/UserSwitcher";
 
@@ -8,30 +10,58 @@ interface GroupListProps {
   selectedGroupId: number | null;
   loading: boolean;
   onSelect: (groupId: number) => void;
+  onRefresh?: () => void;
+  refreshing?: boolean;
 }
 
-export function GroupList({ groups, selectedGroupId, loading, onSelect }: GroupListProps) {
+export function GroupList({
+  groups,
+  selectedGroupId,
+  loading,
+  onSelect,
+  onRefresh,
+  refreshing = false,
+}: GroupListProps) {
   return (
-    <section className="rounded-3xl border border-stone-200/80 bg-white/90 p-5 shadow-[0_18px_50px_-35px_rgba(28,25,23,0.6)] backdrop-blur">
-      <div className="mb-4 flex items-baseline justify-between">
-        <h2 className="font-serif text-lg font-semibold text-stone-900">Your groups</h2>
-        <span className="text-xs font-medium text-stone-500">
-          {groups.length} {groups.length === 1 ? "group" : "groups"}
-        </span>
+    <section className="rounded-[14px] border border-line bg-card p-4">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h2 className="text-[14px] font-medium text-ink">Your groups</h2>
+        <div className="flex items-center gap-1.5">
+          <span className="font-mono text-[12px] text-ink-muted">
+            {groups.length} {groups.length === 1 ? "group" : "groups"}
+          </span>
+          {onRefresh ? (
+            <button
+              type="button"
+              onClick={onRefresh}
+              disabled={refreshing}
+              aria-label="Refresh group data"
+              title="Refresh group data"
+              className="rounded-[6px] p-0.5 text-ink-muted transition-colors duration-150 hover:bg-raised hover:text-ink disabled:opacity-50"
+            >
+              <RefreshCw
+                size={16}
+                strokeWidth={1.5}
+                aria-hidden
+                className={refreshing ? "animate-spin" : ""}
+              />
+            </button>
+          ) : null}
+        </div>
       </div>
 
       {loading ? (
-        <div className="space-y-3" aria-label="Loading groups">
+        <div className="space-y-2" aria-label="Loading groups">
           {[0, 1].map((key) => (
-            <div key={key} className="h-[74px] animate-pulse rounded-2xl bg-stone-100" />
+            <div key={key} className="h-[66px] rounded-[10px] bg-raised" />
           ))}
         </div>
       ) : groups.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-stone-300 p-4 text-sm text-stone-500">
-          You are not in any groups yet.
+        <p className="rounded-[8px] border border-dashed border-line-strong px-3 py-4 text-[13px] text-ink-muted">
+          You are not in any groups yet
         </p>
       ) : (
-        <div className="space-y-2.5">
+        <div className="space-y-1">
           {groups.map((group) => {
             const selected = group.id === selectedGroupId;
             return (
@@ -40,46 +70,60 @@ export function GroupList({ groups, selectedGroupId, loading, onSelect }: GroupL
                 type="button"
                 aria-pressed={selected}
                 onClick={() => onSelect(group.id)}
-                className={`group w-full rounded-2xl border p-3.5 text-left transition ${
+                className={`group relative w-full rounded-[10px] px-3 py-2.5 text-left transition-colors duration-150 ${
                   selected
-                    ? "border-emerald-950 bg-emerald-950 text-white shadow-lg shadow-emerald-950/20"
-                    : "border-stone-200 bg-stone-50/70 text-stone-900 hover:-translate-y-0.5 hover:border-emerald-800/40 hover:bg-white hover:shadow-md"
+                    ? "bg-ink text-paper"
+                    : "text-ink hover:bg-raised/80"
                 }`}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold leading-5">{group.name}</p>
+                {selected ? (
+                  <span
+                    aria-hidden
+                    className="absolute inset-y-2.5 left-0 w-[2px] rounded-full bg-accent"
+                  />
+                ) : null}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-[14px] font-medium leading-5">{group.name}</p>
                     <p
-                      className={`mt-0.5 text-xs ${selected ? "text-emerald-200/80" : "text-stone-500"}`}
+                      className={`mt-0.5 text-[12px] leading-4 ${
+                        selected ? "text-paper/70" : "text-ink-muted"
+                      }`}
                     >
-                      Group #{group.id} · {group.member_count} members
+                      {group.member_count} members
                     </p>
                   </div>
-                  <span
-                    className={`text-lg leading-none transition group-hover:translate-x-0.5 ${
-                      selected ? "text-emerald-300" : "text-stone-400"
-                    }`}
+                  <ChevronRight
+                    size={16}
+                    strokeWidth={1.5}
                     aria-hidden
-                  >
-                    →
-                  </span>
+                    className={`mt-0.5 shrink-0 ${
+                      selected ? "text-paper/50" : "text-ink-muted/50"
+                    }`}
+                  />
                 </div>
-                <div className="mt-3 flex items-center gap-2">
-                  <div className="flex -space-x-1.5">
+                <div className="mt-2 flex items-center gap-2">
+                  <div className="flex -space-x-1">
                     {group.members.slice(0, 4).map((member) => (
                       <span
                         key={member}
                         title={titleCase(member)}
-                        className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-white/70 bg-emerald-100 text-[10px] font-bold uppercase text-emerald-950"
+                        className={`inline-flex h-5 w-5 items-center justify-center rounded-full border font-mono text-[9px] font-medium ${
+                          selected
+                            ? "border-paper/25 bg-paper/15 text-paper"
+                            : "border-line bg-raised text-ink-soft"
+                        }`}
                       >
                         {member.slice(0, 1)}
                       </span>
                     ))}
                   </div>
                   <span
-                    className={`text-[11px] ${selected ? "text-emerald-100/75" : "text-stone-500"}`}
+                    className={`truncate text-[11px] ${
+                      selected ? "text-paper/70" : "text-ink-muted"
+                    }`}
                   >
-                    {group.members.map(titleCase).join(" · ")}
+                    {group.members.map(titleCase).join(", ")}
                   </span>
                 </div>
               </button>
@@ -93,13 +137,13 @@ export function GroupList({ groups, selectedGroupId, loading, onSelect }: GroupL
 
 export function GroupSignal({ group }: { group: Group }) {
   return (
-    <div className="flex items-center gap-2">
-      <div className="flex -space-x-2">
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="flex -space-x-1">
         {group.members.map((member) => (
           <Avatar key={member} username={member} size="sm" />
         ))}
       </div>
-      <span className="text-sm text-stone-600">{group.members.map(titleCase).join(", ")}</span>
+      <span className="text-[13px] text-ink-soft">{group.members.map(titleCase).join(", ")}</span>
     </div>
   );
 }

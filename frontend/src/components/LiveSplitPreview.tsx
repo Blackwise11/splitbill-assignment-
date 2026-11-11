@@ -1,5 +1,7 @@
 "use client";
 
+import { Check } from "lucide-react";
+
 import { formatSatang, type Share } from "@/lib/money";
 import type { SplitType } from "@/lib/types";
 import { titleCase } from "@/components/UserSwitcher";
@@ -18,6 +20,13 @@ interface LiveSplitPreviewProps {
   emptyMessage?: string;
 }
 
+function remainderNamesText(names: string[]): string {
+  if (names.length === 0) return "";
+  return names.length === 1
+    ? names[0]
+    : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+}
+
 export function LiveSplitPreview({
   mode,
   totalSatang,
@@ -27,87 +36,128 @@ export function LiveSplitPreview({
 }: LiveSplitPreviewProps) {
   const hasTotal = totalSatang !== null && totalSatang > 0;
   const exactComplete = hasTotal && remainingSatang === 0;
+  const remainderCount =
+    mode === "equal" && hasTotal && rows.length > 0 ? totalSatang % rows.length : 0;
+  const remainderNames = rows.slice(0, remainderCount).map((row) => titleCase(row.username));
+  const allocated = totalSatang === null ? 0 : totalSatang - remainingSatang;
+  const progress =
+    mode === "exact" && totalSatang !== null && totalSatang > 0
+      ? Math.min(100, Math.max(0, (allocated / totalSatang) * 100))
+      : 0;
 
   return (
-    <div className="rounded-2xl border border-stone-200 bg-stone-50/80 p-4" aria-live="polite">
-      <div className="flex items-center justify-between gap-3">
+    <div
+      className="rounded-[12px] border border-ink/15 bg-[#faf5ea] p-4 shadow-[0_8px_24px_rgba(33,28,22,0.06)]"
+      aria-live="polite"
+    >
+      <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-stone-500">
-            Live split preview
-          </p>
-          <p className="mt-1 text-sm font-semibold text-stone-900">
-            {hasTotal ? formatSatang(totalSatang) : "0.00"} THB total
+          <p className="text-[12px] font-medium text-ink-soft">Split preview</p>
+          <p className="mt-1 font-mono text-[26px] font-medium leading-none tracking-[-0.02em] tabular-nums text-ink">
+            {hasTotal ? formatSatang(totalSatang) : "0.00"}
+            <span className="ml-1.5 text-[12px] font-normal tracking-normal text-ink-muted">
+              THB
+            </span>
           </p>
         </div>
-        <span className="rounded-full border border-emerald-900/10 bg-emerald-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-900">
+        <span className="rounded-[4px] border border-line-strong px-1.5 py-0.5 text-[11px] text-ink-soft">
           {mode === "equal" ? "Equal" : "Exact"} · {rows.length}{" "}
           {rows.length === 1 ? "person" : "people"}
         </span>
       </div>
 
-      <div className="mt-4 space-y-2">
+      <div className="mt-3 border-t border-dashed border-line-strong pt-1">
         {rows.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-stone-300 px-3 py-4 text-center text-xs text-stone-500">
-            {emptyMessage ?? "Choose at least one member to preview the split."}
+          <p className="px-1 py-4 text-[12px] leading-5 text-ink-muted">
+            {emptyMessage ?? "Choose at least one member to preview the split"}
           </p>
         ) : (
-          rows.map((row) => (
-            <div
-              key={row.username}
-              className="flex items-center justify-between gap-3 rounded-xl bg-white px-3 py-2 shadow-sm ring-1 ring-stone-200/60"
-            >
-              <span className="truncate text-sm text-stone-700">{titleCase(row.username)}</span>
-              <span
-                className={`shrink-0 font-mono text-sm font-semibold tabular-nums ${
-                  row.invalid ? "text-rose-600" : "text-stone-900"
-                }`}
-              >
-                {row.invalid ? "Invalid" : `${formatSatang(row.amountSatang)} THB`}
-              </span>
-            </div>
-          ))
+          <div className="divide-y divide-line/70">
+            {rows.map((row) => (
+              <div key={row.username} className="flex items-center justify-between gap-3 py-2">
+                <span className="truncate text-[13px] text-ink-soft">{titleCase(row.username)}</span>
+                <span
+                  className={`shrink-0 font-mono text-[13px] font-medium tabular-nums ${
+                    row.invalid ? "text-negative" : "text-ink"
+                  }`}
+                >
+                  {row.invalid ? "Invalid" : `${formatSatang(row.amountSatang)} THB`}
+                </span>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 
-      {mode === "exact" ? (
-        <div
-          className={`mt-4 flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold ${
-            !hasTotal
-              ? "bg-stone-200/70 text-stone-600"
-              : exactComplete
-                ? "bg-emerald-100 text-emerald-900"
-                : remainingSatang < 0
-                  ? "bg-rose-100 text-rose-800"
-                  : "bg-amber-100 text-amber-900"
-          }`}
-        >
-          <span>
-            {!hasTotal
-              ? "Enter an amount to allocate"
-              : exactComplete
-                ? "Fully allocated"
-                : remainingSatang < 0
-                  ? "Over-allocated"
-                  : "Remaining"}
-          </span>
-          <span className="font-mono tabular-nums">
-            {hasTotal ? `${formatSatang(Math.abs(remainingSatang))} THB` : "—"}
-          </span>
+      {mode === "equal" ? (
+        <div className="mt-3 border-t border-dashed border-line-strong pt-3">
+          <p className="flex items-start gap-1.5 text-[12px] leading-5 text-ink-muted">
+            {remainderCount > 0 ? (
+              <>
+                <span className="shrink-0 font-mono font-medium text-accent">
+                  +{formatSatang(remainderCount)}
+                </span>
+                <span>remainder to {remainderNamesText(remainderNames)}</span>
+              </>
+            ) : (
+              <span>
+                {hasTotal ? "Each member gets an equal share" : "Enter an amount to preview the split"}
+              </span>
+            )}
+          </p>
         </div>
       ) : (
-        <div className="mt-4 flex items-center justify-between gap-2 rounded-xl bg-emerald-100 px-3 py-2.5 text-xs font-semibold text-emerald-900">
-          <span>
-            {rows.length === 0 ? "Select at least one member" : "All members accounted for"}
-          </span>
-          <span className="font-mono tabular-nums">
-            {hasTotal ? `${formatSatang(totalSatang)} THB` : "—"}
-          </span>
+        <div className="mt-3 border-t border-dashed border-line-strong pt-3">
+          <div className="flex items-center justify-between gap-3 text-[12px]">
+            <span className="text-ink-muted">
+              {!hasTotal
+                ? "Enter an amount"
+                : exactComplete
+                  ? "Fully allocated"
+                  : remainingSatang < 0
+                    ? "Over-allocated"
+                    : "Remaining"}
+            </span>
+            <span
+              className={`font-mono font-medium tabular-nums ${
+                !hasTotal
+                  ? "text-ink-muted"
+                  : exactComplete
+                    ? "text-positive"
+                    : remainingSatang < 0
+                      ? "text-negative"
+                      : "text-accent"
+              }`}
+            >
+              {hasTotal ? `${formatSatang(Math.abs(remainingSatang))} THB` : "—"}
+            </span>
+          </div>
+          <div className="mt-2 h-1 overflow-hidden rounded-full bg-raised">
+            <div
+              className={`h-full rounded-full ${
+                exactComplete ? "bg-positive" : remainingSatang < 0 ? "bg-negative" : "bg-accent"
+              }`}
+              style={{ width: `${progress}%` }}
+            />
+          </div>
         </div>
       )}
 
-      <p className="mt-3 text-[11px] leading-4 text-stone-500">
-        Satang-precise. Remainders go +0.01 THB to members in the order shown.
-      </p>
+      <div className="mt-3 flex min-h-8 items-center justify-between gap-3">
+        <p className="text-[11px] leading-4 text-ink-muted">
+          {mode === "equal"
+            ? hasTotal
+              ? "Remainder follows member order"
+              : "Amounts in THB"
+            : "Shares must equal the total"}
+        </p>
+        {hasTotal && (mode === "equal" || exactComplete) ? (
+          <span className="inline-flex -rotate-2 items-center gap-1 rounded-[4px] border-2 border-ink/60 px-2 py-1 font-mono text-[11px] font-medium text-ink/80">
+            <Check size={16} strokeWidth={1.5} aria-hidden />
+            Balanced
+          </span>
+        ) : null}
+      </div>
     </div>
   );
 }

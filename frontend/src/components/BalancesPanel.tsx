@@ -1,6 +1,6 @@
 "use client";
 
-import { formatMoneyAmount, amountToSatang, formatSatang } from "@/lib/money";
+import { amountToSatang, formatMoneyAmount, formatSatang } from "@/lib/money";
 import type { Balances } from "@/lib/types";
 import { Avatar, titleCase } from "@/components/UserSwitcher";
 
@@ -12,68 +12,66 @@ interface BalancesPanelProps {
 
 export function BalancesPanel({ balances, activeUser, loading }: BalancesPanelProps) {
   return (
-    <section className="rounded-3xl border border-stone-200/80 bg-white/90 p-5 shadow-[0_18px_50px_-35px_rgba(28,25,23,0.6)] backdrop-blur">
-      <div className="mb-4 flex items-baseline justify-between gap-2">
-        <h2 className="font-serif text-lg font-semibold text-stone-900">Balances</h2>
-        <span className="rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-stone-500">
-          Net
-        </span>
+    <section className="rounded-[14px] border border-line bg-card p-4">
+      <div className="mb-1 flex items-baseline justify-between gap-2">
+        <h2 className="text-[14px] font-medium text-ink">Balances</h2>
+        {balances ? (
+          <span className="font-mono text-[12px] text-ink-muted">{balances.currency}</span>
+        ) : null}
       </div>
 
       {loading && !balances ? (
-        <div className="space-y-2.5" aria-label="Loading balances">
+        <div className="mt-2 space-y-1" aria-label="Loading balances">
           {[0, 1, 2].map((key) => (
-            <div key={key} className="h-14 animate-pulse rounded-xl bg-stone-100" />
+            <div key={key} className="h-12 rounded-[8px] bg-raised" />
           ))}
         </div>
       ) : !balances || balances.members.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-stone-300 p-4 text-sm text-stone-500">
-          Record an expense to see who owes what.
+        <p className="mt-2 rounded-[8px] border border-dashed border-line-strong px-3 py-4 text-[13px] text-ink-muted">
+          Record an expense to see who owes what
         </p>
       ) : (
-        <div className="space-y-2">
+        <div className="divide-y divide-line/70">
           {balances.members.map((line) => {
             const satang = amountToSatang(line.balance);
             const positive = satang > 0;
             const negative = satang < 0;
             return (
-              <div
-                key={line.username}
-                className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 ${
-                  line.username === activeUser
-                    ? "border-emerald-900/15 bg-emerald-50/70"
-                    : "border-stone-200/80 bg-white"
-                }`}
-              >
+              <div key={line.username} className="flex items-center gap-2.5 py-2.5">
                 <Avatar username={line.username} size="sm" />
                 <div className="min-w-0 flex-1">
-                  <p className="flex items-center gap-1.5 truncate text-sm font-semibold text-stone-800">
+                  <p className="flex items-center gap-1.5 truncate text-[13px] font-medium leading-5 text-ink">
                     {titleCase(line.username)}
                     {line.username === activeUser ? (
-                      <span className="rounded bg-emerald-900 px-1 py-0.5 text-[8px] font-bold uppercase tracking-wide text-white">
-                        you
-                      </span>
+                      <span
+                        aria-label="you"
+                        title="You"
+                        className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent"
+                      />
                     ) : null}
                   </p>
-                  <p className="truncate text-[10px] text-stone-500">
-                    paid {formatMoneyAmount(line.paid)} · owes {formatMoneyAmount(line.owed)}
+                  <p
+                    className="truncate font-mono text-[11px] leading-4 text-ink-muted"
+                    title={`Paid ${formatMoneyAmount(line.paid)} · owes ${formatMoneyAmount(line.owed)}`}
+                  >
+                    paid {formatMoneyAmount(line.paid)}
                   </p>
                 </div>
-                <div className="text-right">
+                <div className="shrink-0 text-right">
                   <p
-                    className={`font-mono text-sm font-bold tabular-nums ${
-                      positive ? "text-emerald-700" : negative ? "text-rose-600" : "text-stone-400"
+                    className={`font-mono text-[13px] font-medium tabular-nums ${
+                      positive ? "text-positive" : negative ? "text-negative" : "text-ink-muted"
                     }`}
                   >
                     {positive ? "+" : negative ? "−" : ""}
                     {formatSatang(Math.abs(satang))}
                   </p>
                   <p
-                    className={`text-[9px] font-semibold uppercase tracking-wide ${
-                      positive ? "text-emerald-600" : negative ? "text-rose-500" : "text-stone-400"
+                    className={`text-[11px] leading-4 ${
+                      positive ? "text-positive" : negative ? "text-negative" : "text-ink-muted"
                     }`}
                   >
-                    {positive ? "gets back" : negative ? "owes" : "settled"}
+                    {positive ? "Gets back" : negative ? "Owes" : "Settled"}
                   </p>
                 </div>
               </div>
@@ -82,12 +80,9 @@ export function BalancesPanel({ balances, activeUser, loading }: BalancesPanelPr
         </div>
       )}
 
-      <div className="mt-4 flex items-center justify-between border-t border-stone-200 pt-3 text-[11px] text-stone-500">
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-600" />
-          Zero-sum invariant
-        </span>
-        <span className="font-mono font-semibold text-stone-700">
+      <div className="mt-1 flex items-center justify-between border-t border-line pt-3 text-[12px]">
+        <span className="text-ink-muted">Total</span>
+        <span className="font-mono font-medium tabular-nums text-ink">
           {formatMoneyAmount(balances?.total ?? "0.00")} THB
         </span>
       </div>

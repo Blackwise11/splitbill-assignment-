@@ -130,7 +130,7 @@ export default function SplitBillApp() {
   async function handleCreated() {
     if (selectedGroupId === null) return;
     await refreshData(selectedGroupId, user);
-    setNotice("Expense recorded. Every share is allocated to the exact satang.");
+    setNotice("Expense recorded · balances updated");
   }
 
   async function handleDelete(expenseId: number) {
@@ -138,7 +138,7 @@ export default function SplitBillApp() {
     try {
       await deleteExpense(selectedGroupId, expenseId, user);
       await refreshData(selectedGroupId, user);
-      setNotice("Expense deleted. It is retained as a soft-delete audit row.");
+      setNotice("Expense deleted · balances updated");
     } catch (caught: unknown) {
       setError(errorMessage(caught));
     }
@@ -159,9 +159,7 @@ export default function SplitBillApp() {
         newIdempotencyKey(),
       );
       await refreshData(selectedGroupId, user);
-      setNotice(
-        `Repayment from ${titleCase(transfer.from_user)} to ${titleCase(transfer.to_user)} recorded.`,
-      );
+      setNotice(`Repayment recorded from ${titleCase(transfer.from_user)} to ${titleCase(transfer.to_user)}`);
     } catch (caught: unknown) {
       setError(errorMessage(caught));
     }
@@ -169,18 +167,18 @@ export default function SplitBillApp() {
 
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-30 border-b border-stone-200/70 bg-[#f6f3ec]/90 backdrop-blur-md">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3.5 sm:px-6">
-          <div className="flex items-center gap-3">
-            <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-950 font-serif text-2xl font-semibold text-emerald-50 shadow-lg shadow-emerald-950/20">
+      <header className="sticky top-0 z-30 border-b border-line bg-paper/95">
+        <div className="mx-auto flex h-16 w-full max-w-[1440px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[8px] border border-ink/25 font-mono text-[17px] font-medium text-ink">
               ฿
             </span>
-            <div>
-              <h1 className="font-serif text-xl font-semibold leading-none tracking-tight text-stone-950">
+            <div className="min-w-0">
+              <p className="text-[17px] font-semibold leading-5 tracking-[-0.01em] text-ink">
                 SplitBill
-              </h1>
-              <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-500">
-                Exact to the last satang
+              </p>
+              <p className="hidden truncate text-[12px] leading-4 text-ink-muted sm:block">
+                Shared expenses, settled to the satang
               </p>
             </div>
           </div>
@@ -188,26 +186,26 @@ export default function SplitBillApp() {
         </div>
       </header>
 
-      <div className="mx-auto w-full max-w-7xl space-y-2 px-4 pt-4 sm:px-6">
+      <div className="mx-auto w-full max-w-[1440px] space-y-2 px-4 pt-4 sm:px-6 lg:px-8">
         <ErrorBanner message={error} onDismiss={() => setError(null)} />
         <ErrorBanner message={notice} tone="success" onDismiss={() => setNotice(null)} />
       </div>
 
-      <main className="mx-auto grid w-full max-w-7xl gap-6 px-4 pb-16 pt-5 sm:px-6 lg:grid-cols-[320px_minmax(0,1fr)]">
-        <aside className="space-y-5">
+      <main className="mx-auto grid w-full max-w-[1440px] gap-5 px-4 pb-12 pt-5 sm:px-6 lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-6 lg:px-8">
+        <aside className="space-y-4">
           <GroupList
             groups={groups}
             selectedGroupId={selectedGroupId}
             loading={groupsLoading}
             onSelect={handleSelectGroup}
+            onRefresh={
+              selectedGroup ? () => void refreshData(selectedGroup.id, user) : undefined
+            }
+            refreshing={dataLoading}
           />
           {selectedGroup ? (
             <>
-              <BalancesPanel
-                balances={balances}
-                activeUser={user}
-                loading={dataLoading}
-              />
+              <BalancesPanel balances={balances} activeUser={user} loading={dataLoading} />
               <SettleUpPanel
                 settleUp={settleUp}
                 activeUser={user}
@@ -218,39 +216,28 @@ export default function SplitBillApp() {
           ) : null}
         </aside>
 
-        <section className="space-y-5">
+        <section className="min-w-0 space-y-4">
           {selectedGroup ? (
             <>
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-stone-200/80 bg-white/60 px-5 py-4 backdrop-blur">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-stone-500">
-                    Active group · #{selectedGroup.id}
+              <div className="hidden flex-wrap items-end justify-between gap-4 border-b border-line pb-4 lg:flex">
+                <div className="min-w-0">
+                  <p className="text-[12px] leading-4 text-ink-muted">
+                    Group {selectedGroup.id} · {selectedGroup.member_count} members
                   </p>
-                  <h2 className="mt-0.5 font-serif text-2xl font-semibold tracking-tight text-stone-950">
+                  <h2 className="mt-1 truncate text-[28px] font-medium leading-8 tracking-[-0.02em] text-ink">
                     {selectedGroup.name}
                   </h2>
                   <div className="mt-2">
                     <GroupSignal group={selectedGroup} />
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {dataLoading ? (
-                    <span className="flex items-center gap-2 text-[11px] font-medium text-stone-500">
-                      <span className="h-3 w-3 animate-spin rounded-full border-2 border-stone-300 border-t-emerald-800" />
-                      Syncing
-                    </span>
-                  ) : null}
-                  <button
-                    type="button"
-                    onClick={() => void refreshData(selectedGroup.id, user)}
-                    className="rounded-xl border border-stone-300 bg-white px-3 py-1.5 text-[11px] font-semibold text-stone-600 shadow-sm transition hover:border-emerald-800/30 hover:text-emerald-900"
-                  >
-                    Refresh
-                  </button>
-                </div>
               </div>
 
-              <div className={dataLoading ? "opacity-70 transition-opacity duration-200" : ""}>
+              <div
+                className={
+                  dataLoading ? "opacity-70 transition-opacity duration-200" : undefined
+                }
+              >
                 <ExpenseForm
                   key={`${selectedGroup.id}-${user}`}
                   group={selectedGroup}
@@ -267,29 +254,25 @@ export default function SplitBillApp() {
               />
             </>
           ) : groupsLoading ? (
-            <div className="space-y-5" aria-label="Loading workspace">
-              <div className="h-28 animate-pulse rounded-3xl bg-white/70" />
-              <div className="h-96 animate-pulse rounded-3xl bg-white/70" />
+            <div className="space-y-4" aria-label="Loading workspace">
+              <div className="h-24 rounded-[14px] bg-raised" />
+              <div className="h-80 rounded-[14px] bg-raised" />
             </div>
           ) : (
-            <div className="flex min-h-[420px] flex-col items-center justify-center rounded-3xl border border-dashed border-stone-300 bg-white/60 px-6 text-center">
-              <span className="font-serif text-6xl text-emerald-950/15">฿</span>
-              <h2 className="mt-4 font-serif text-2xl font-semibold text-stone-800">
+            <div className="flex min-h-[360px] flex-col items-center justify-center rounded-[14px] border border-line bg-card px-6 text-center">
+              <span className="font-mono text-[42px] leading-none text-ink/15">฿</span>
+              <h2 className="mt-3 text-[20px] font-medium text-ink">
                 {groups.length === 0 ? "No groups yet" : "Choose a group"}
               </h2>
-              <p className="mt-2 max-w-sm text-sm leading-6 text-stone-500">
+              <p className="mt-1 max-w-sm text-[13px] leading-5 text-ink-muted">
                 {groups.length === 0
-                  ? `${titleCase(user)} is not a member of any group. Switch user to explore another workspace.`
-                  : "Pick one of your groups on the left to see balances and record an expense."}
+                  ? `${titleCase(user)} is not a member of any group. Switch user to see another workspace`
+                  : "Pick one of your groups to see balances and record an expense"}
               </p>
             </div>
           )}
         </section>
       </main>
-
-      <footer className="border-t border-stone-200/70 px-4 py-6 text-center text-[10px] uppercase tracking-[0.16em] text-stone-400 sm:px-6">
-        Integer-satang accounting · PostgreSQL NUMERIC(12,2) · FastAPI · Next.js
-      </footer>
     </div>
   );
 }

@@ -2,17 +2,28 @@
 
 @theme {
   --font-sans:
-    "Avenir Next", "Segoe UI", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-    sans-serif;
-  --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman",
-    serif;
-  --font-mono: "SFMono-Regular", "Cascadia Code", "Roboto Mono", Consolas, monospace;
+    var(--font-instrument-sans), "Segoe UI", ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, sans-serif;
+  --font-mono:
+    var(--font-plex-mono), "Cascadia Code", "SFMono-Regular", Consolas, ui-monospace, monospace;
+
+  --color-paper: #f4f0e8;
+  --color-paper-deep: #ebe3d5;
+  --color-card: #fdfbf7;
+  --color-raised: #efe8db;
+  --color-ink: #211c16;
+  --color-ink-soft: #5f5548;
+  --color-ink-muted: #7c7163;
+  --color-line: rgba(33, 28, 22, 0.11);
+  --color-line-strong: rgba(33, 28, 22, 0.2);
+  --color-accent: #9a5b15;
+  --color-accent-soft: #f2e3cb;
+  --color-positive: #2f6b4a;
+  --color-negative: #a33a2a;
 }
 
 :root {
   color-scheme: light;
-  --page: #f6f3ec;
-  --ink: #1c1917;
 }
 
 * {
@@ -26,18 +37,16 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
-  background:
-    radial-gradient(circle at 8% -10%, rgba(16, 185, 129, 0.12), transparent 34rem),
-    radial-gradient(circle at 96% 4%, rgba(245, 158, 11, 0.1), transparent 30rem),
-    var(--page);
-  color: var(--ink);
+  background: var(--color-paper);
+  color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
 ::selection {
-  background: rgba(6, 78, 59, 0.16);
+  background: var(--color-accent-soft);
+  color: var(--color-ink);
 }
 
 button,
@@ -46,18 +55,33 @@ input {
   font: inherit;
 }
 
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
 input[type="text"],
 select {
   appearance: none;
 }
 
 select {
-  background-image:
-    linear-gradient(45deg, transparent 50%, #78716c 50%),
-    linear-gradient(135deg, #78716c 50%, transparent 50%);
-  background-position:
-    calc(100% - 14px) calc(50% - 2px),
-    calc(100% - 9px) calc(50% - 2px);
-  background-size: 5px 5px;
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%237c7163' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-position: right 12px center;
   background-repeat: no-repeat;
+  padding-right: 32px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

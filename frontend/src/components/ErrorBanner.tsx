@@ -1,5 +1,7 @@
 "use client";
 
+import { AlertCircle, CheckCircle2, X } from "lucide-react";
+
 interface ErrorBannerProps {
   message: string | null;
   tone?: "error" | "success";
@@ -10,26 +12,26 @@ export function ErrorBanner({ message, tone = "error", onDismiss }: ErrorBannerP
   if (!message) return null;
 
   const isError = tone === "error";
+  const Icon = isError ? AlertCircle : CheckCircle2;
+
   return (
     <div
       role={isError ? "alert" : "status"}
       className={
         isError
-          ? "mx-auto flex w-full max-w-7xl items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 shadow-sm"
-          : "mx-auto flex w-full max-w-7xl items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 shadow-sm"
+          ? "flex items-start gap-2.5 rounded-[10px] border border-negative/25 bg-[#fbf2ef] px-3 py-2.5 text-[13px] leading-5 text-negative"
+          : "flex items-start gap-2.5 rounded-[10px] border border-positive/25 bg-[#f1f6f2] px-3 py-2.5 text-[13px] leading-5 text-positive"
       }
     >
-      <span aria-hidden className="mt-0.5 text-base leading-none">
-        {isError ? "!" : "✓"}
-      </span>
-      <p className="flex-1 leading-6">{message}</p>
+      <Icon size={16} strokeWidth={1.5} className="mt-0.5 shrink-0" aria-hidden />
+      <p className="flex-1">{message}</p>
       <button
         type="button"
         onClick={onDismiss}
-        className="rounded-lg px-2 py-0.5 text-xs font-semibold uppercase tracking-wide opacity-60 transition hover:bg-white/60 hover:opacity-100"
+        className="rounded-[6px] p-0.5 opacity-60 transition-colors duration-150 hover:bg-ink/5 hover:opacity-100"
         aria-label="Dismiss message"
       >
-        Close
+        <X size={16} strokeWidth={1.5} aria-hidden />
       </button>
     </div>
   );
