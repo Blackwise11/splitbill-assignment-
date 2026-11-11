@@ -1,11 +1,19 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import { errorMessage, getGroups } from "@/lib/api";
-import type { Group, User } from "@/lib/types";
+import {
+  deleteExpense,
+  errorMessage,
+  getBalances,
+  getExpenses,
+  getGroups,
+} from "@/lib/api";
+import type { Balances, Expense, Group, User } from "@/lib/types";
+import { BalancesPanel } from "@/components/BalancesPanel";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { ExpenseForm } from "@/components/ExpenseForm";
+import { ExpenseTable } from "@/components/ExpenseTable";
 import { GroupList, GroupSignal } from "@/components/GroupList";
 import { UserSwitcher, titleCase } from "@/components/UserSwitcher";
 
@@ -14,9 +22,13 @@ export default function SplitBillApp() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [groupsLoading, setGroupsLoading] = useState(true);
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [balances, setBalances] = useState<Balances | null>(null);
+  const [dataLoading, setDataLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const groupsRequest = useRef(0);
+  const dataRequest = useRef(0);
 
   const selectedGroup = groups.find((group) => group.id === selectedGroupId) ?? null;
 
@@ -47,25 +59,80 @@ export default function SplitBillApp() {
     };
   }, [user]);
 
+  const refreshData = useCallback(async (groupId: number, actor: string) => {
+    const requestId = ++dataRequest.current;
+    setDataLoading(true);
+    try {
+      const [expenseResult, balanceResult] = await Promise.all([
+        getExpenses(groupId, actor),
+        getBalances(groupId, actor),
+      ]);
+      if (requestId !== dataRequest.current) return;
+      setExpenses(expenseResult.expenses);
+      setBalances(balanceResult);
+    } catch (caught: unknown) {
+      if (requestId === dataRequest.current) setError(errorMessage(caught));
+    } finally {
+      if (requestId === dataRequest.current) setDataLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (selectedGroupId === null) {
+      dataRequest.current += 1;
+      return;
+    }
+    // Client-side fetch effect: the loading flag is intentionally updated here.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void refreshData(selectedGroupId, user);
+  }, [refreshData, selectedGroupId, user]);
+
   useEffect(() => {
     if (!notice) return;
     const timer = setTimeout(() => setNotice(null), 5000);
     return () => clearTimeout(timer);
   }, [notice]);
 
+  function handleSelectGroup(groupId: number) {
+    if (groupId === selectedGroupId) return;
+    dataRequest.current += 1;
+    setSelectedGroupId(groupId);
+    setExpenses([]);
+    setBalances(null);
+    setError(null);
+    setDataLoading(true);
+  }
+
   function handleUserChange(nextUser: User) {
     if (nextUser === user) return;
     groupsRequest.current += 1;
+    dataRequest.current += 1;
     setUser(nextUser);
     setGroups([]);
     setGroupsLoading(true);
     setSelectedGroupId(null);
+    setExpenses([]);
+    setBalances(null);
+    setDataLoading(false);
     setError(null);
     setNotice(null);
   }
 
   async function handleCreated() {
+    if (selectedGroupId === null) return;
+    await refreshData(selectedGroupId, user);
     setNotice("Expense recorded. Every share is allocated to the exact satang.");
+  }
+
+  async function handleDelete(expenseId: number) {
+    if (selectedGroupId === null) return;
+    try {
+      await deleteExpense(selectedGroupId, expenseId, user);
+      await refreshData(selectedGroupId, user);
+      setNotice("Expense deleted. It is retained as a soft-delete audit row.");
+    } catch (caught: unknown) {
+      setError(errorMessage(caught));
+    }
   }
 
   return (
@@ -100,8 +167,15 @@ export default function SplitBillApp() {
             groups={groups}
             selectedGroupId={selectedGroupId}
             loading={groupsLoading}
-            onSelect={setSelectedGroupId}
+            onSelect={handleSelectGroup}
           />
+          {selectedGroup ? (
+            <BalancesPanel
+              balances={balances}
+              activeUser={user}
+              loading={dataLoading}
+            />
+          ) : null}
         </aside>
 
         <section className="space-y-5">
@@ -119,16 +193,37 @@ export default function SplitBillApp() {
                     <GroupSignal group={selectedGroup} />
                   </div>
                 </div>
-                <span className="rounded-full bg-white px-3 py-1.5 text-[11px] font-semibold text-stone-600 shadow-sm ring-1 ring-stone-200">
-                  {selectedGroup.member_count} members · THB
-                </span>
+                <div className="flex items-center gap-2">
+                  {dataLoading ? (
+                    <span className="flex items-center gap-2 text-[11px] font-medium text-stone-500">
+                      <span className="h-3 w-3 animate-spin rounded-full border-2 border-stone-300 border-t-emerald-800" />
+                      Syncing
+                    </span>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => void refreshData(selectedGroup.id, user)}
+                    className="rounded-xl border border-stone-300 bg-white px-3 py-1.5 text-[11px] font-semibold text-stone-600 shadow-sm transition hover:border-emerald-800/30 hover:text-emerald-900"
+                  >
+                    Refresh
+                  </button>
+                </div>
               </div>
 
-              <ExpenseForm
-                key={`${selectedGroup.id}-${user}`}
-                group={selectedGroup}
+              <div className={dataLoading ? "opacity-70 transition-opacity duration-200" : ""}>
+                <ExpenseForm
+                  key={`${selectedGroup.id}-${user}`}
+                  group={selectedGroup}
+                  activeUser={user}
+                  onCreated={handleCreated}
+                />
+              </div>
+
+              <ExpenseTable
+                expenses={expenses}
                 activeUser={user}
-                onCreated={handleCreated}
+                loading={dataLoading}
+                onDelete={handleDelete}
               />
             </>
           ) : groupsLoading ? (
@@ -145,7 +240,7 @@ export default function SplitBillApp() {
               <p className="mt-2 max-w-sm text-sm leading-6 text-stone-500">
                 {groups.length === 0
                   ? `${titleCase(user)} is not a member of any group. Switch user to explore another workspace.`
-                  : "Pick one of your groups on the left to record an expense."}
+                  : "Pick one of your groups on the left to see balances and record an expense."}
               </p>
             </div>
           )}
