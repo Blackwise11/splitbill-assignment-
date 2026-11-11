@@ -223,10 +223,27 @@ The suite covers:
 Additional coverage: membership validation, payer validation, immutable routes, payments, seed
 idempotency, and PostgreSQL `NUMERIC(12,2)` DDL compilation.
 
-**Test database note:** Pytest uses a temporary SQLite database so the suite runs hermetically with a
-single command and without requiring a database server. The schema is the same SQLAlchemy metadata
-used by Alembic/PostgreSQL, and a unit test compiles the money columns against the PostgreSQL dialect
-to assert `NUMERIC(12, 2)`. The Docker/production path uses PostgreSQL 16.
+#### Running the suite against PostgreSQL
+
+The default suite is hermetic SQLite. To exercise the real PostgreSQL path, create a dedicated test
+database and point `TEST_DATABASE_URL` at it:
+
+```bash
+psql -U postgres -c "CREATE DATABASE splitbill_test OWNER splitbill;"
+
+cd backend
+# macOS / Linux
+TEST_DATABASE_URL=postgresql+psycopg://splitbill:splitbill@localhost:5432/splitbill_test pytest
+# Windows PowerShell
+$env:TEST_DATABASE_URL='postgresql+psycopg://splitbill:splitbill@localhost:5432/splitbill_test'; pytest
+```
+
+For safety, the test fixture refuses a PostgreSQL URL whose database name does not end in `_test`.
+It drops and recreates the test schema for each test.
+
+**Verified on PostgreSQL 16.15:** all 68 tests passed, including the eight-thread idempotency race.
+The migration and seed script were also applied to a real PostgreSQL 16.15 cluster, and the money
+columns were confirmed as `NUMERIC(12,2)`.
 
 ### Frontend
 
@@ -541,19 +558,23 @@ it always produces a valid settlement.
 
 | Gate | Result |
 |---|---|
-| `pytest` (backend) | **68 passed** |
+| `pytest` (backend, SQLite) | **68 passed** |
+| `pytest` (backend, PostgreSQL 16.15) | **68 passed**, including the concurrency test |
+| Alembic upgrade + seed against PostgreSQL 16.15 | pass |
+| `docker compose config` (Compose 5.7.0) | pass |
 | `ruff check .` | pass |
 | `ruff format --check .` | pass |
 | `npm test` (Vitest) | **9 passed** |
 | `npm run lint` | pass |
 | `npm run build` | pass |
 | Alembic offline SQL generation (`alembic upgrade head --sql`) | pass, PostgreSQL dialect |
-| Browser flow: user switch, group scoping, equal/exact preview, submit, delete, repayment, mobile layout | verified |
+| Browser flow against PostgreSQL: group scoping, equal/exact preview, submit, delete, repayment, mobile layout | verified |
 
-The development machine used for this implementation did not have a Docker engine or a local
-PostgreSQL 16 server, so the local end-to-end run used SQLite with the same ORM metadata. PostgreSQL
-DDL is compiled and asserted in tests, and the Docker/Compose path is provided for a true PostgreSQL
-run. See `AI_NOTES.md` for the exact verification protocol and environment limitations.
+PostgreSQL 16.15 was installed locally (portable binaries, no admin service) and the entire suite was
+run against it. Docker CLI 29.9.3 and Compose 5.7.0 were installed and `docker compose config`
+validated the stack. The Docker **engine** (Docker Desktop/WSL2) requires administrator rights and a
+WSL2 installation, neither of which was available to this non-elevated session, so the containers
+were not built/booted locally. See `AI_NOTES.md` for the exact verification protocol.
 
 ---
 
@@ -573,10 +594,12 @@ run. See `AI_NOTES.md` for the exact verification protocol and environment limit
   currencies in one balance report.
 - **Operations:** rate limiting, structured audit logs, request IDs, metrics/tracing, backups, and
   migration rollback drills.
-- **Test matrix:** add a PostgreSQL-backed integration job in CI (the current suite is hermetic SQLite)
-  and a Playwright end-to-end suite for the browser flows.
-- **Docker:** the Compose stack was authored and YAML-validated, but not booted on the development
-  machine because Docker was unavailable.
+- **Test matrix:** an optional `TEST_DATABASE_URL` mode already runs the full suite against PostgreSQL
+  16; wire it into CI as a PostgreSQL-service job alongside the hermetic SQLite run. Add a Playwright
+  end-to-end suite for the browser flows.
+- **Docker:** the CLI and Compose are installed and `docker compose config` validates the stack, but
+  Docker Desktop/WSL2 requires administrator rights and was not available in the non-elevated session;
+  the containers were therefore not booted on this machine.
 
 ---
 

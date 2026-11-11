@@ -14,6 +14,7 @@ is transparency: the repository is the result of an AI-assisted implementation, 
 | **Ruff** | Automated Python lint/format gate (not an AI tool, but used to reject generated code). |
 | **ESLint / TypeScript / Vitest / Next build** | Automated frontend gates. |
 | **Pytest** | Automated backend gate, including the concurrency test. |
+| **PostgreSQL 16.15 portable + Docker CLI/Compose** | Real-database verification and Compose configuration validation. |
 | **Playwright browser automation** | Manual/agent-driven browser verification of user switching, group scoping, live preview, submission, deletion, repayment, and responsive layout. |
 
 No Claude, Gemini, GitHub Copilot, or other model was used in this build. The assistant had access to
@@ -241,12 +242,14 @@ npm run build
 Observed results at the final revision:
 
 ```text
-backend: 68 passed
+backend (SQLite): 68 passed
+backend (PostgreSQL 16.15): 68 passed
 frontend: 9 passed
 ruff check: All checks passed
 ruff format --check: 57 files already formatted
 eslint: no errors
 next build: success (static / route)
+docker compose config: valid
 ```
 
 The build also catches TypeScript errors that lint does not, and the browser flow verifies behavior
@@ -270,30 +273,37 @@ case study can be inspected in history between `6977f25` and `2f38566`.
 
 | Check | Result |
 |---|---|
-| `pytest -q` | 68 passed |
+| `pytest -q` (SQLite) | 68 passed |
+| `pytest -q` with `TEST_DATABASE_URL` (PostgreSQL 16.15) | 68 passed, including the 8-thread race |
+| Alembic upgrade + seed against PostgreSQL 16.15 | pass; groups 1/2, five memberships, `NUMERIC(12,2)` confirmed |
+| `docker compose config` (Docker CLI 29.9.3 / Compose 5.7.0) | valid; services `db`, `api`, `web` |
 | `npm test` | 9 passed |
 | `ruff check .` / `ruff format --check .` | pass |
 | `npm run lint` | pass |
 | `npm run build` | pass |
 | `alembic upgrade head --sql` | PostgreSQL-dialect SQL generated |
-| Browser: equal split 100/3 | preview and persisted shares show 33.34 / 33.33 / 33.33 |
+| Browser against PostgreSQL: equal split 100/3 | persisted shares 33.34 / 33.33 / 33.33, balances sum 0.00 |
 | Browser: exact split | submit disabled with remainder, enabled at 0.00 |
 | Browser: user/group scoping | Alice sees Group 1; Bob sees Groups 1 and 2 |
-| Browser: delete | payer sees Delete; non-payer sees “payer only” |
+| Browser: delete | payer sees Delete; non-payer sees “payer only”; balances exclude the tombstone |
 | Browser: repayment | Mark paid updates balances and settle-up |
 | Browser: mobile | no horizontal overflow at 390px |
 
-**Environment limitation:** the development machine had no Docker engine and no PostgreSQL 16
-installation. Consequences:
+**Environment status:** PostgreSQL 16.15 was installed from the official portable Windows binaries,
+initialized as a user-owned cluster on port 55432, migrated with Alembic, seeded, and used for the
+full test suite and a browser run. Docker CLI and Compose were installed per-user; `docker compose
+config` validates the project.
 
-- The Pytest suite runs against a temporary SQLite database using the same SQLAlchemy metadata and
-  constraints. This made the suite hermetic and fast, but it does not exercise PostgreSQL-specific
-  lock timing.
-- PostgreSQL compatibility is checked by compiling the ORM money columns against the PostgreSQL
-  dialect and by generating the Alembic migration with the PostgreSQL runner. The Docker Compose
-  stack is provided for a real PostgreSQL 16 run, but it was not booted in this environment.
-- The manual browser verification therefore used SQLite behind uvicorn and the Next.js development
-  server. The frontend code is API-driven and does not depend on the database engine.
+**Remaining limitation:** a Docker **engine** was not available. Docker Desktop/WSL2 requires an
+elevated installation and a WSL2 setup, and the session runs at medium integrity (the user is an
+administrator but UAC-elevated operations were unavailable). Consequently the `db`/`api`/`web`
+containers were not built or booted locally. The Compose file, Dockerfiles, PostgreSQL migration,
+seed, and full test suite were verified independently. Installing Docker Desktop and running
+`docker compose up --build` remains the final environment check.
+
+The optional PostgreSQL test mode is guarded: `TEST_DATABASE_URL` must name a database ending in
+`_test`, so the fixture cannot drop a normal development database. The browser verification now runs
+against real PostgreSQL, not SQLite.
 
 These limitations are also listed in `README.md`. They are disclosed rather than hidden.
 
