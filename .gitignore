@@ -1,0 +1,44 @@
+# Node / Next.js
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Databases / runtime
+*.db
+*.db-shm
+*.db-wal
+*.sqlite3
+
+# Tooling
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+coverage/
+playwright-report/
+test-results/
+
+# Local assessment prompt
+AGENT.md
