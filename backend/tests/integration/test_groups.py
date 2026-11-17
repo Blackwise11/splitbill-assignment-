@@ -73,6 +73,15 @@ def test_missing_and_unknown_identity_are_rejected(client: TestClient) -> None:
     assert unknown.json()["error"]["code"] == "unknown_user"
 
 
+def test_error_envelope_always_includes_details(client: TestClient) -> None:
+    response = client.get("/groups/2", headers=auth("alice"))
+
+    assert response.status_code == 403
+    error = response.json()["error"]
+    assert set(error) == {"code", "message", "details"}
+    assert error["details"] == {}
+
+
 def test_unknown_group_returns_404_for_member(client: TestClient) -> None:
     response = client.get("/groups/999", headers=auth("alice"))
     assert response.status_code == 404

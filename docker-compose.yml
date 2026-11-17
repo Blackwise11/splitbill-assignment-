@@ -4,15 +4,19 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: splitbill
-      POSTGRES_PASSWORD: splitbill
-      POSTGRES_DB: splitbill
+      POSTGRES_USER: ${POSTGRES_USER:-splitbill}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-splitbill}
+      POSTGRES_DB: ${POSTGRES_DB:-splitbill}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U splitbill -d splitbill"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-splitbill} -d ${POSTGRES_DB:-splitbill}",
+        ]
       interval: 5s
       timeout: 3s
       retries: 12
@@ -22,8 +26,8 @@ services:
     build:
       context: ./backend
     environment:
-      DATABASE_URL: postgresql+psycopg://splitbill:splitbill@db:5432/splitbill
-      CORS_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-splitbill}:${POSTGRES_PASSWORD:-splitbill}@db:5432/${POSTGRES_DB:-splitbill}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
       LOG_LEVEL: info
     ports:
       - "8000:8000"
@@ -48,9 +52,9 @@ services:
     build:
       context: ./frontend
       args:
-        NEXT_PUBLIC_API_URL: http://localhost:8000
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8000
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
     ports:
       - "3000:3000"
     depends_on:

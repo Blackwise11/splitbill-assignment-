@@ -23,9 +23,13 @@ def error_response(
     details: dict[str, Any] | list[dict[str, Any]] | None = None,
 ) -> JSONResponse:
     """Build the single error envelope consumed by the frontend."""
-    body: dict[str, Any] = {"error": {"code": code, "message": message}}
-    if details:
-        body["error"]["details"] = details
+    body: dict[str, Any] = {
+        "error": {
+            "code": code,
+            "message": message,
+            "details": details if details is not None else {},
+        }
+    }
     return JSONResponse(status_code=status_code, content=body)
 
 

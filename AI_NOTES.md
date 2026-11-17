@@ -17,8 +17,9 @@ is transparency: the repository is the result of an AI-assisted implementation, 
 | **PostgreSQL 16.15 portable + Docker CLI/Compose** | Real-database verification and Compose configuration validation. |
 | **Playwright browser automation** | Manual/agent-driven browser verification of user switching, group scoping, live preview, submission, deletion, repayment, and responsive layout. |
 
-No Claude, Gemini, GitHub Copilot, or other model was used in this build. The assistant had access to
-the repository and shell, so it could run tests and inspect actual failures rather than guessing.
+No Claude, Gemini, GitHub Copilot, Cursor, or Antigravity generation was used in this build. The
+assistant had access to the repository and shell, so it could run tests and inspect actual failures
+rather than guessing.
 
 **Transparency:** AI generated most of the code and prose. The assistant also performed the automated
 and browser verification described below. A human reviewer should still review the final diff,
@@ -89,9 +90,12 @@ It also invites binary-float artifacts (`0.1 + 0.2 = 0.30000000000000004`) and b
 invariant because the stored shares no longer equal the stored total.
 
 **How it was caught:** the required test
-`test_equal_split_100_baht_three_ways_allocates_every_satang` asserts the exact list
-`[3334, 3333, 3333]` and `sum == 10000`, not just a rounded display value. A separate unit test
-asserts `0.1 + 0.2 == 0.30` via satang.
+`test_equal_split_100_baht_three_ways_allocates_every_satang` in
+`backend/tests/unit/test_allocation.py` asserts the exact list `[3334, 3333, 3333]` and
+`sum == 10000`, not just a rounded display value. `test_money.py::test_zero_point_one_plus_zero_point_two_is_exactly_thirty_satang`
+asserts `0.1 + 0.2 == 0.30` via satang. The corrected algorithm lives in
+`backend/app/services/allocation.py::allocate_equal`; strict input parsing is in
+`backend/app/services/money.py::parse_money`.
 
 **Fix:** integer satang with divmod and deterministic remainder distribution:
 
@@ -136,8 +140,9 @@ A unique constraint alone is not enough if the service does not handle the viola
 request would return an internal error instead of the original expense, and the user might retry
 again.
 
-**How it was caught:** the concurrency integration test synchronizes eight threads with a barrier,
-sends the same key to the real FastAPI app, and asserts:
+**How it was caught:** the concurrency integration test
+`backend/tests/integration/test_concurrency.py::test_concurrent_same_idempotency_key_creates_exactly_one_expense`
+synchronizes eight threads with a barrier, sends the same key to the real FastAPI app, and asserts:
 
 - all responses are `200` or `201`,
 - exactly one response is `201`,
@@ -148,7 +153,7 @@ sends the same key to the real FastAPI app, and asserts:
 
 **Fix (`2f38566`):** keep the pre-read for the common case, make the unique constraint
 `(group_id, idempotency_key)` the source of truth, and recover from the conflict by rolling back and
-re-reading:
+re-reading. The final implementation is `backend/app/services/expenses.py::create_expense`:
 
 ```python
 try:
@@ -191,8 +196,9 @@ Uncaught Error: Invalid money amount received from API: -33.33
 This was not caught by unit tests because the initial tests only parsed positive amounts. It was
 caught during the manual browser flow after creating the first expense and rendering balances.
 
-**Fix:** `amountToSatang` and `formatMoneyAmount` now parse an optional leading minus, apply the
-unsigned parser to the magnitude, and reapply the sign. A regression test asserts
+**Fix:** `amountToSatang` and `formatMoneyAmount` in `frontend/src/lib/money.ts` now parse an optional
+leading minus, apply the unsigned parser to the magnitude, and reapply the sign. The regression test
+`frontend/src/lib/money.test.ts::handles negative balance strings without throwing` asserts
 `amountToSatang("-33.33") === -3333` and `formatMoneyAmount("-1000.00") === "-1,000.00"`.
 
 **Lesson:** input parsing and display parsing have different domains. Signed balances are not user
@@ -242,8 +248,8 @@ npm run build
 Observed results at the final revision:
 
 ```text
-backend (SQLite): 68 passed
-backend (PostgreSQL 16.15): 68 passed
+backend (SQLite): 69 passed
+backend (PostgreSQL 16.15): 69 passed
 frontend: 9 passed
 ruff check: All checks passed
 ruff format --check: 57 files already formatted
@@ -274,8 +280,8 @@ case study can be inspected in history between `6977f25` and `2f38566`.
 
 | Check | Result |
 |---|---|
-| `pytest -q` (SQLite) | 68 passed |
-| `pytest -q` with `TEST_DATABASE_URL` (PostgreSQL 16.15) | 68 passed, including the 8-thread race |
+| `pytest -q` (SQLite) | 69 passed |
+| `pytest -q` with `TEST_DATABASE_URL` (PostgreSQL 16.15) | 69 passed, including the 8-thread race |
 | Alembic upgrade + seed against PostgreSQL 16.15 | pass; groups 1/2, five memberships, `NUMERIC(12,2)` confirmed |
 | `docker compose config` (Docker CLI 29.9.3 / Compose 5.7.0) | valid; services `db`, `api`, `web` |
 | `docker compose up --build` (Docker Desktop 4.99 / WSL 3.0.5) | built and booted; `db`/`api` healthy, `web` serving |

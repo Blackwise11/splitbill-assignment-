@@ -20,7 +20,7 @@ Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · Pytest ·
 - Optional extension: greedy settle-up suggestions and repayment recording.
 - Polished responsive UI with a live split preview that mirrors the backend algorithm exactly.
 - Seeded users and groups, Alembic migration, Docker Compose orchestration.
-- 68 backend tests and 9 frontend unit tests, all passing.
+- 69 backend tests and 9 frontend unit tests, all passing.
 
 ---
 
@@ -102,8 +102,13 @@ call one service, and present the result.
 Prerequisites: Docker Desktop or Docker Engine with Compose v2.
 
 ```bash
+cp .env.example .env   # optional; Compose has matching defaults
 docker compose up --build
 ```
+
+The root `.env.example` documents `POSTGRES_PORT`, `POSTGRES_USER`, `POSTGRES_PASSWORD`,
+`POSTGRES_DB`, `NEXT_PUBLIC_API_URL`, and optional `CORS_ORIGINS`. The Compose file uses defaults
+matching that file, so `docker compose up --build` also works without creating `.env`.
 
 This starts three services:
 
@@ -241,7 +246,7 @@ $env:TEST_DATABASE_URL='postgresql+psycopg://splitbill:splitbill@localhost:5432/
 For safety, the test fixture refuses a PostgreSQL URL whose database name does not end in `_test`.
 It drops and recreates the test schema for each test.
 
-**Verified on PostgreSQL 16.15:** all 68 tests passed, including the eight-thread idempotency race.
+**Verified on PostgreSQL 16.15:** all 69 tests passed, including the eight-thread idempotency race.
 The migration and seed script were also applied to a real PostgreSQL 16.15 cluster, and the money
 columns were confirmed as `NUMERIC(12,2)`.
 
@@ -283,7 +288,7 @@ original record with `200 OK` and `Idempotent-Replayed: true`; the first creatio
 | `GET` | `/groups` | Groups of the requesting user |
 | `GET` | `/groups/{group_id}` | Group detail with member list |
 | `POST` | `/groups/{group_id}/expenses` | Record an immutable expense |
-| `GET` | `/groups/{group_id}/expenses` | Active expenses, newest first |
+| `GET` | `/groups/{group_id}/expenses` | Active expenses, newest first (envelope with `expenses` and `count`) |
 | `DELETE` | `/groups/{group_id}/expenses/{expense_id}` | Payer-only soft delete (`204`) |
 | `GET` | `/groups/{group_id}/balances` | Net balances for every member |
 | `GET` | `/groups/{group_id}/settle-up` | Greedy settlement suggestions |
@@ -304,6 +309,9 @@ All expected failures use one shape:
   }
 }
 ```
+
+`details` is always present. Domain errors use an object (often `{}` when there is no extra context);
+validation errors use a list of field-level entries.
 
 | Status | When |
 |---|---|
@@ -549,7 +557,12 @@ it always produces a valid settlement.
 12. **Currency is THB only.** Amounts are not converted; the API and UI label values as THB.
 13. **Group membership is read-only.** There is no group creation or membership management endpoint in
     this assessment; seeded membership defines access.
-14. **Repayments are immutable transfers.** They reduce/increase net balances and cannot be edited or
+14. **Expense lists use a forward-compatible pagination envelope.** `GET /groups/{group_id}/expenses`
+    returns `{ "expenses": [...], "count": N }` rather than a raw array. This keeps the endpoint
+    backward-compatible when `limit`, `offset`, or `next_cursor` are added later; a strict consumer
+    that expects a raw array should read the `expenses` property. The current frontend consumes this
+    envelope directly, and `count` equals the number of active expenses in the response.
+15. **Repayments are immutable transfers.** They reduce/increase net balances and cannot be edited or
     deleted through the API.
 
 ---
@@ -558,8 +571,8 @@ it always produces a valid settlement.
 
 | Gate | Result |
 |---|---|
-| `pytest` (backend, SQLite) | **68 passed** |
-| `pytest` (backend, PostgreSQL 16.15) | **68 passed**, including the concurrency test |
+| `pytest` (backend, SQLite) | **69 passed** |
+| `pytest` (backend, PostgreSQL 16.15) | **69 passed**, including the concurrency test |
 | Alembic upgrade + seed against PostgreSQL 16.15 | pass |
 | `docker compose config` (Compose 5.7.0) | pass |
 | `docker compose up --build` (Docker Desktop 4.99 / WSL 3.0.5) | **built and booted**; `db` + `api` healthy, `web` serving |
